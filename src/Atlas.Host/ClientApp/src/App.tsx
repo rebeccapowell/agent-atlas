@@ -3,11 +3,12 @@ import { ApiListPage } from "@/pages/ApiListPage"
 import { ApiDetailPage } from "@/pages/ApiDetailPage"
 import { ToolListPage } from "@/pages/ToolListPage"
 import { ConnectMcpPage } from "@/pages/ConnectMcpPage"
+import { AboutPage } from "@/pages/AboutPage"
 import { ThemeToggle } from "@/components/ThemeToggle"
-import { BookOpen, Wrench, Activity, Zap } from "lucide-react"
+import { BookOpen, Wrench, Activity, Zap, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type Page = "apis" | "tools" | "api-detail" | "connect-mcp"
+type Page = "apis" | "tools" | "api-detail" | "connect-mcp" | "about"
 
 function App() {
   const [page, setPage] = useState<Page>("tools")
@@ -30,9 +31,12 @@ function App() {
       {/* Header */}
       <header className="border-b sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Activity className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">Agent Atlas</span>
+            <div>
+              <div className="font-bold text-lg leading-none">Agent Atlas</div>
+              <div className="text-xs text-muted-foreground leading-none mt-0.5">MCP Mesh</div>
+            </div>
           </div>
 
           <nav className="flex items-center gap-1">
@@ -72,6 +76,18 @@ function App() {
               <Zap className="h-4 w-4" />
               Use MCP
             </button>
+            <button
+              onClick={() => setPage("about")}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                page === "about"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              <Info className="h-4 w-4" />
+              About
+            </button>
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </nav>
         </div>
@@ -85,6 +101,7 @@ function App() {
           <ApiDetailPage apiId={selectedApiId} onBack={() => setPage("apis")} />
         )}
         {page === "connect-mcp" && <ConnectMcpPage />}
+        {page === "about" && <AboutPage />}
       </main>
     </div>
   )
