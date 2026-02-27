@@ -28,6 +28,15 @@
         "include.in.token.scope": "true",
         "display.on.consent.screen": "false"
       }
+    },
+    {
+      "name": "someapi:customers:read",
+      "description": "Read access to Sample API customers resource",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
     }
   ],
 
@@ -50,7 +59,8 @@
         "profile",
         "email",
         "platform-code-mode:search",
-        "platform-code-mode:execute"
+        "platform-code-mode:execute",
+        "someapi:customers:read"
       ],
       "optionalClientScopes": [],
       "protocolMappers": [

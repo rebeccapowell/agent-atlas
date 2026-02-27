@@ -5,20 +5,8 @@ public class AtlasOptions
     public string CatalogPath { get; set; } = "/catalog";
     public bool CatalogStrict { get; set; } = true;
     public OidcOptions Oidc { get; set; } = new();
-    public McpOptions Mcp { get; set; } = new();
     public PlatformPermissionsOptions PlatformPermissions { get; set; } = new();
     public ExecLimitsOptions ExecLimits { get; set; } = new();
-}
-
-public class McpOptions
-{
-    /// <summary>
-    /// When true, the /mcp endpoint accepts unauthenticated requests and skips platform
-    /// permission checks for callers without a JWT. Intended for local dev / MCP Inspector use.
-    /// MUST NOT be enabled in production deployments as it bypasses all authentication
-    /// and authorization checks on the MCP endpoint.
-    /// </summary>
-    public bool AllowAnonymous { get; set; } = false;
 }
 
 public class OidcOptions

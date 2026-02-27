@@ -29,15 +29,6 @@ public sealed class AtlasMcpTools(
     /// <summary>Asserts the caller has the given platform permission; throws if not.</summary>
     private void RequirePlatformPermission(string permission)
     {
-        // When anonymous MCP access is enabled (local dev / MCP Inspector) and the caller
-        // has no JWT, skip permission enforcement so the inspector can exercise all tools.
-        if (Opts.Mcp.AllowAnonymous)
-        {
-            var isAuthenticated = httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated;
-            if (isAuthenticated == false || isAuthenticated == null)
-                return;
-        }
-
         if (!CallerPerms.Contains(permission))
             throw new UnauthorizedAccessException(
                 $"Missing platform permission '{permission}'. " +
