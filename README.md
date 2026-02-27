@@ -389,6 +389,29 @@ See [`docs/deploy-docker.md`](docs/deploy-docker.md) and [`docs/deploy-helm.md`]
 
 ---
 
+## Inspiration
+
+Agent Atlas combines ideas from two influential pieces of infrastructure thinking:
+
+### Cloudflare Code Mode
+
+In 2025, Cloudflare published ["Code Mode"](https://blog.cloudflare.com/code-mode/) — an approach that exposes APIs as structured, invokable tools for AI agents via the Model Context Protocol (MCP). The core insight is that agents interact most reliably with APIs when they are presented as first-class **tools** — with explicit names, schemas, and descriptions — rather than raw HTTP endpoints that an agent must guess how to call. Agent Atlas applies this idea at the enterprise level: turning your internal API estate into a governed, searchable surface of MCP tools.
+
+### Apollo GraphQL Mesh
+
+[Apollo GraphQL Mesh](https://the-guild.dev/graphql/mesh) pioneered the idea of a **data mesh gateway**: a single layer that federates access to many heterogeneous data sources — REST, gRPC, GraphQL, databases — and presents them through a unified schema. Agent Atlas takes the same federation philosophy and applies it not to a GraphQL schema, but to an **MCP tool surface**: a single, governed point of entry to your REST APIs that agents can discover and invoke, regardless of which team owns the underlying service.
+
+### The synthesis
+
+Agent Atlas is what you get when you combine these two ideas:
+
+- **From Code Mode** — the concept that enterprise APIs should be expressed as structured MCP tools and executed through a secure, identity-aware proxy.
+- **From GraphQL Mesh** — the federation model of a single gateway that aggregates multiple backend services without requiring those services to change.
+
+Together they produce a platform where teams publish tools via GitOps, agents discover them through MCP, and callers' identities are forwarded end-to-end — with the platform team owning the surface, not the data.
+
+---
+
 ## Further reading
 
 - [`docs/security-model.md`](docs/security-model.md) — two-layer auth model in detail
