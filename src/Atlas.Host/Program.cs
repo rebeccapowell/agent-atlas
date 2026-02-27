@@ -48,6 +48,14 @@ builder.Services.AddSingleton<IToolIndex, ToolIndex>();
 builder.Services.AddSingleton<IExecutionEngine, ExecutionEngine>();
 builder.Services.AddHttpClient("atlas-exec");
 
+// HTTP context accessor - required for MCP tools to read caller claims
+builder.Services.AddHttpContextAccessor();
+
+// MCP server using the official ModelContextProtocol.AspNetCore SDK (Streamable HTTP transport)
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<AtlasMcpTools>();
+
 // CORS for UI - always restrict to localhost in development; use Atlas:Cors:AllowedOrigins in production
 var allowedOrigins = builder.Configuration.GetSection("Atlas:Cors:AllowedOrigins").Get<string[]>();
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
@@ -80,10 +88,11 @@ app.UseAuthorization();
 app.MapHealthChecks("/healthz");
 app.MapHealthChecks("/readyz");
 
-// MCP endpoints
-app.MapMcpEndpoints();
+// MCP server endpoint (Streamable HTTP transport - used by AI agents / Claude / etc.)
+// RequireAuthorization() ensures JWT validation before any tool call is processed.
+app.MapMcp("/mcp").RequireAuthorization();
 
-// Catalog API
+// Catalog REST API (used by the UI and direct API clients)
 app.MapCatalogApiEndpoints();
 
 // Serve React UI from wwwroot

@@ -9,10 +9,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.1.2-preview.1.26125.13" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Atlas.Host\Atlas.Host.csproj" />
-    <ProjectReference Include="..\Atlas.StubIdp\Atlas.StubIdp.csproj" />
     <ProjectReference Include="..\SampleApi.ToolEnabled\SampleApi.ToolEnabled.csproj" />
     <ProjectReference Include="..\SampleApi.NotToolEnabled\SampleApi.NotToolEnabled.csproj" />
   </ItemGroup>

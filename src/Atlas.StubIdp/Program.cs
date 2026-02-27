@@ -1,3 +1,7 @@
+// Atlas.StubIdp — lightweight RSA JWT issuer for local development / unit testing.
+// The Aspire AppHost uses Keycloak (via Aspire.Hosting.Keycloak) as the default IdP.
+// This project remains available as a fast, dependency-free alternative when you don't
+// want to run a Keycloak container (e.g. CI, offline dev, or testing Atlas.Host standalone).
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
