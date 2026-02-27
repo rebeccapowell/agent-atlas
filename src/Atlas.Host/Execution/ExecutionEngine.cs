@@ -312,8 +312,11 @@ public class ExecContext
         _bytesDownloaded += bytes;
         if (bytes > maxBytes)
             throw new ExecutionLimitException($"Response exceeds max response bytes ({maxBytes})");
-        if (_bytesDownloaded > maxBytes * 10)
-            throw new ExecutionLimitException($"Total downloaded bytes exceeds limit ({maxBytes * 10})");
+        // Total-downloaded cap is 10x the per-response limit to allow multi-step plans while still
+        // bounding overall data transfer without requiring a separate config value.
+        const int totalDownloadMultiplier = 10;
+        if (_bytesDownloaded > maxBytes * totalDownloadMultiplier)
+            throw new ExecutionLimitException($"Total downloaded bytes exceeds limit ({maxBytes * totalDownloadMultiplier})");
     }
 
     public void SetVariable(string name, object? value) => Variables[name] = value;

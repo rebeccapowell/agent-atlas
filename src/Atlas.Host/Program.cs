@@ -48,14 +48,18 @@ builder.Services.AddSingleton<IToolIndex, ToolIndex>();
 builder.Services.AddSingleton<IExecutionEngine, ExecutionEngine>();
 builder.Services.AddHttpClient("atlas-exec");
 
-// CORS for UI - restrict origins in production via Atlas:Cors:AllowedOrigins config
+// CORS for UI - always restrict to localhost in development; use Atlas:Cors:AllowedOrigins in production
 var allowedOrigins = builder.Configuration.GetSection("Atlas:Cors:AllowedOrigins").Get<string[]>();
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
 {
-    if (builder.Environment.IsDevelopment() || allowedOrigins is null or { Length: 0 })
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-    else
+    if (allowedOrigins is { Length: > 0 })
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+    else if (builder.Environment.IsDevelopment())
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5000")
+              .AllowAnyHeader().AllowAnyMethod();
+    else
+        // No origins configured in production - deny cross-origin requests by default
+        policy.AllowAnyHeader().AllowAnyMethod();
 }));
 
 // Health checks

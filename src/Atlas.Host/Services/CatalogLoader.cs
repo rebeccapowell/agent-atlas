@@ -160,9 +160,14 @@ public class CatalogLoader : ICatalogLoader
                         .ToArray();
                 }
 
+                // x-mcp.requiredPermissions is required for catalog hygiene (informational; Atlas does not
+                // enforce downstream permissions). In strict mode this is a warning; a future policy option
+                // could treat it as a fatal validation error.
                 if (requiredPerms.Length == 0)
                 {
-                    _logger.LogWarning("Tool {ToolId} missing x-mcp.requiredPermissions (catalog hygiene)", toolId);
+                    _logger.LogWarning("Tool {ToolId} missing x-mcp.requiredPermissions (catalog hygiene warning)", toolId);
+                    if (_options.CatalogStrict)
+                        _logger.LogWarning("Set Atlas:CatalogStrict=false to suppress this warning, or add x-mcp.requiredPermissions to the operation");
                 }
 
                 // Extract description override

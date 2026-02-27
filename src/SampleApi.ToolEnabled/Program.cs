@@ -1,12 +1,13 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// In production, validate the Bearer token
-// For dev, just check header presence
+// WARNING: This sample API is for LOCAL DEVELOPMENT AND DEMO PURPOSES ONLY.
+// Token validation is intentionally relaxed so the Aspire demo works without a real IdP.
+// In production, you MUST configure proper JWT validation with issuer, audience, and
+// signing-key validation. NEVER use these settings in a production environment.
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = false;
-        // In dev, just do minimal validation
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateAudience = false,
