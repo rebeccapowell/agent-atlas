@@ -1,5 +1,17 @@
 {
   "mcpServers": {
+    "aspire": {
+      "type": "local",
+      "command": "aspire",
+      "args": [
+        "agent",
+        "mcp"
+      ],
+      "env": {
+        "DOTNET_ROOT": "${DOTNET_ROOT}"
+      },
+      "tools": ["*"]
+    },
     "EXAMPLE-trello": {
       "command": "npx",
       "args": [
