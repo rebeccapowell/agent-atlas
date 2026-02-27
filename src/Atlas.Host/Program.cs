@@ -63,7 +63,7 @@ builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
     if (allowedOrigins is { Length: > 0 })
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
     else if (builder.Environment.IsDevelopment())
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5000")
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5000", "http://localhost:6274")
               .AllowAnyHeader().AllowAnyMethod();
     else
         // No origins configured in production - deny cross-origin requests by default
