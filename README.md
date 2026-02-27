@@ -308,7 +308,9 @@ Supported step types: `call`, `foreach`, `if`, `return`. The engine enforces con
 dotnet run --project src/Atlas.AppHost
 ```
 
-The Aspire dashboard opens automatically. Keycloak starts on a random port, the `atlas` realm is imported automatically, and Atlas.Host waits for Keycloak to be ready.
+The Aspire dashboard opens automatically at **http://localhost:15000** (or https://localhost:17001). Keycloak starts on a random port, the `atlas` realm is imported automatically, and Atlas.Host waits for Keycloak to be ready.
+
+> **Note:** Docker Desktop must be running — Keycloak is launched as a container. If you don't have Docker, use the StubIdp fallback below.
 
 **Default Keycloak credentials for local dev**
 
@@ -326,7 +328,7 @@ The Aspire dashboard opens automatically. Keycloak starts on a random port, the 
 ASPNETCORE_HTTP_PORTS=5200 dotnet run --project src/Atlas.StubIdp
 
 # Terminal 2 — Atlas.Host pointing at StubIdp
-Atlas__CatalogPath=./catalog \
+Atlas__CatalogPath=$(pwd)/catalog \
 Atlas__Oidc__Issuer=http://localhost:5200 \
 dotnet run --project src/Atlas.Host
 ```
