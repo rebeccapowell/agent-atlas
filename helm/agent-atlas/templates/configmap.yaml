@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "agent-atlas.fullname" . }}-config
+  labels:
+    {{- include "agent-atlas.labels" . | nindent 4 }}
+data:
+  ASPNETCORE_URLS: "http://+:8080"
+  Atlas__CatalogPath: {{ .Values.atlas.catalogPath | quote }}
+  Atlas__CatalogStrict: {{ .Values.atlas.catalogStrict | quote }}
+  Atlas__Oidc__Issuer: {{ .Values.atlas.oidc.issuer | quote }}
+  Atlas__Oidc__Audience: {{ .Values.atlas.oidc.audience | quote }}
+  {{- if .Values.atlas.oidc.allowedIssuers }}
+  Atlas__Oidc__AllowedIssuers: {{ .Values.atlas.oidc.allowedIssuers | join "," | quote }}
+  {{- end }}
+  Atlas__PlatformPermissions__Claim: {{ .Values.atlas.platformPermissions.claim | quote }}
+  Atlas__PlatformPermissions__Search: {{ .Values.atlas.platformPermissions.search | quote }}
+  Atlas__PlatformPermissions__Execute: {{ .Values.atlas.platformPermissions.execute | quote }}
+  Atlas__PlatformPermissions__ExecuteWrite: {{ .Values.atlas.platformPermissions.executeWrite | quote }}
+  Atlas__ExecLimits__MaxSteps: {{ .Values.atlas.execLimits.maxSteps | quote }}
+  Atlas__ExecLimits__MaxCalls: {{ .Values.atlas.execLimits.maxCalls | quote }}
+  Atlas__ExecLimits__MaxSeconds: {{ .Values.atlas.execLimits.maxSeconds | quote }}
+  Atlas__ExecLimits__MaxBytes: {{ .Values.atlas.execLimits.maxBytes | quote }}
+  Atlas__ExecLimits__MaxResponseBytes: {{ .Values.atlas.execLimits.maxResponseBytes | quote }}
+  Atlas__ExecLimits__MaxConcurrency: {{ .Values.atlas.execLimits.maxConcurrency | quote }}

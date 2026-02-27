@@ -1,0 +1,14 @@
+apiVersion: v2
+name: agent-atlas
+description: Agent Atlas - GitOps-driven tool catalog and MCP proxy
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - mcp
+  - agents
+  - gitops
+  - catalog
+maintainers:
+  - name: agent-atlas-team
+    url: https://github.com/rebeccapowell/agent-atlas
