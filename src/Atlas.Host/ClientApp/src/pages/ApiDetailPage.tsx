@@ -4,7 +4,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { SafetyBadge } from "@/components/SafetyBadge"
-import { Loader2, ServerCrash, Search, ArrowLeft, Wrench } from "lucide-react"
+import { Loader2, ServerCrash, Search, ArrowLeft, Wrench, Copy, Check } from "lucide-react"
+
+function CopyableUrl({ label, url }: { label: string; url: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <Badge variant="outline" className="font-normal capitalize shrink-0">{label}</Badge>
+      <span className="font-mono text-muted-foreground truncate max-w-xs">{url}</span>
+      <button
+        onClick={copy}
+        className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label={`Copy ${label} URL`}
+      >
+        {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  )
+}
 
 interface ApiDetailPageProps {
   apiId: string
@@ -53,6 +76,16 @@ export function ApiDetailPage({ apiId, onBack }: ApiDetailPageProps) {
             )}
             {api?.description && (
               <p className="text-sm mt-2 text-muted-foreground max-w-2xl">{api.description}</p>
+            )}
+            {api && (Object.keys(api.environments).length > 0 || api.baseUrl) && (
+              <div className="mt-3 space-y-1">
+                {Object.keys(api.environments).length > 0
+                  ? Object.entries(api.environments).map(([env, url]) => (
+                      <CopyableUrl key={env} label={env} url={url} />
+                    ))
+                  : <CopyableUrl label="base url" url={api.baseUrl} />
+                }
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
