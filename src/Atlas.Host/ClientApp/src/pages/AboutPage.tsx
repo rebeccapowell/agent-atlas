@@ -1,6 +1,6 @@
 export function AboutPage() {
   return (
-    <div className="max-w-3xl space-y-10">
+    <div className="space-y-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">About Agent Atlas</h1>
         <p className="text-muted-foreground mt-2 text-lg">
@@ -9,6 +9,8 @@ export function AboutPage() {
           without tribal knowledge.
         </p>
       </div>
+
+      <ArchitectureDiagram />
 
       <Section title="What problem it solves">
         <p>
@@ -225,6 +227,152 @@ function SubSection({ title, children }: { title: string; children: React.ReactN
     <div className="mt-4">
       <h3 className="text-base font-medium text-foreground mb-1">{title}</h3>
       <p className="text-muted-foreground leading-relaxed">{children}</p>
+    </div>
+  )
+}
+
+function ArchitectureDiagram() {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-4">
+      <p className="text-xs text-muted-foreground mb-3 text-center uppercase tracking-widest font-medium">
+        Architecture Overview
+      </p>
+      <svg
+        viewBox="0 0 860 420"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-label="Agent Atlas architecture diagram"
+        role="img"
+        className="text-foreground"
+      >
+        {/* ── color palette (CSS vars so light/dark both work) ── */}
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="currentColor" opacity="0.5" />
+          </marker>
+          <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6" />
+          </marker>
+          <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#10b981" />
+          </marker>
+          <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b" />
+          </marker>
+        </defs>
+
+        {/* ════════════════════════════════════════════════════════
+            ROW 1 — PUBLISHERS
+        ════════════════════════════════════════════════════════ */}
+        {/* Team A */}
+        <rect x="30" y="20" width="130" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" strokeWidth="1.5" />
+        <text x="95" y="43" textAnchor="middle" fontSize="11" fontWeight="600" fill="#166534">Team A</text>
+        <text x="95" y="58" textAnchor="middle" fontSize="10" fill="#15803d">OpenAPI spec</text>
+        <text x="95" y="72" textAnchor="middle" fontSize="10" fill="#15803d">x-atlas-tool: true</text>
+
+        {/* Team B */}
+        <rect x="180" y="20" width="130" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" strokeWidth="1.5" />
+        <text x="245" y="43" textAnchor="middle" fontSize="11" fontWeight="600" fill="#166534">Team B</text>
+        <text x="245" y="58" textAnchor="middle" fontSize="10" fill="#15803d">OpenAPI spec</text>
+        <text x="245" y="72" textAnchor="middle" fontSize="10" fill="#15803d">x-atlas-tool: true</text>
+
+        {/* Team N */}
+        <rect x="330" y="20" width="130" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" strokeWidth="1.5" />
+        <text x="395" y="43" textAnchor="middle" fontSize="11" fontWeight="600" fill="#166534">Team N …</text>
+        <text x="395" y="58" textAnchor="middle" fontSize="10" fill="#15803d">OpenAPI spec</text>
+        <text x="395" y="72" textAnchor="middle" fontSize="10" fill="#15803d">x-atlas-tool: true</text>
+
+        {/* arrows: teams → git repo */}
+        <line x1="95" y1="80" x2="240" y2="130" stroke="#86efac" strokeWidth="1.5" markerEnd="url(#arrow)" />
+        <line x1="245" y1="80" x2="245" y2="130" stroke="#86efac" strokeWidth="1.5" markerEnd="url(#arrow)" />
+        <line x1="395" y1="80" x2="255" y2="130" stroke="#86efac" strokeWidth="1.5" markerEnd="url(#arrow)" />
+
+        {/* GitOps label on arrows */}
+        <text x="95" y="112" fontSize="9" fill="#16a34a" fontStyle="italic">PR review</text>
+        <text x="385" y="112" fontSize="9" fill="#16a34a" fontStyle="italic">PR review</text>
+
+        {/* ════════════════════════════════════════════════════════
+            ROW 2 — DATA PLANE GIT REPO
+        ════════════════════════════════════════════════════════ */}
+        <rect x="155" y="130" width="180" height="52" rx="8" fill="#eff6ff" stroke="#93c5fd" strokeWidth="1.5" />
+        <text x="245" y="152" textAnchor="middle" fontSize="11" fontWeight="600" fill="#1d4ed8">Atlas Data Plane</text>
+        <text x="245" y="167" textAnchor="middle" fontSize="10" fill="#2563eb">Git Repository (GitOps)</text>
+        <text x="245" y="178" textAnchor="middle" fontSize="9" fill="#3b82f6">Helm / CI deploy on merge</text>
+
+        {/* arrow: git repo → atlas core */}
+        <line x1="245" y1="182" x2="430" y2="222" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#arrowBlue)" />
+
+        {/* ════════════════════════════════════════════════════════
+            ROW 2 — IDENTITY PROVIDER
+        ════════════════════════════════════════════════════════ */}
+        <rect x="580" y="130" width="150" height="52" rx="8" fill="#fdf4ff" stroke="#d8b4fe" strokeWidth="1.5" />
+        <text x="655" y="152" textAnchor="middle" fontSize="11" fontWeight="600" fill="#6b21a8">Identity Provider</text>
+        <text x="655" y="167" textAnchor="middle" fontSize="10" fill="#7e22ce">OIDC / Entra / Keycloak</text>
+        <text x="655" y="178" textAnchor="middle" fontSize="9" fill="#9333ea">Issues JWT tokens</text>
+
+        {/* ════════════════════════════════════════════════════════
+            ROW 3 — AGENT ATLAS CORE (central box, two halves)
+        ════════════════════════════════════════════════════════ */}
+        <rect x="300" y="225" width="320" height="110" rx="10" fill="#fff7ed" stroke="#fb923c" strokeWidth="2" />
+        <text x="460" y="245" textAnchor="middle" fontSize="13" fontWeight="700" fill="#c2410c">Agent Atlas</text>
+
+        {/* Catalog half */}
+        <rect x="310" y="253" width="140" height="70" rx="6" fill="#fef3c7" stroke="#fcd34d" strokeWidth="1.2" />
+        <text x="380" y="273" textAnchor="middle" fontSize="11" fontWeight="600" fill="#92400e">Catalog</text>
+        <text x="380" y="289" textAnchor="middle" fontSize="9.5" fill="#b45309">Searchable tool inventory</text>
+        <text x="380" y="303" textAnchor="middle" fontSize="9.5" fill="#b45309">Owners · scopes · safety tier</text>
+        <text x="380" y="317" textAnchor="middle" fontSize="9.5" fill="#b45309">/v1/tools  /v1/apis</text>
+
+        {/* MCP Proxy half */}
+        <rect x="460" y="253" width="150" height="70" rx="6" fill="#fce7f3" stroke="#f9a8d4" strokeWidth="1.2" />
+        <text x="535" y="273" textAnchor="middle" fontSize="11" fontWeight="600" fill="#9d174d">MCP Proxy</text>
+        <text x="535" y="289" textAnchor="middle" fontSize="9.5" fill="#be185d">Code Mode interface</text>
+        <text x="535" y="303" textAnchor="middle" fontSize="9.5" fill="#be185d">search · describe · execute</text>
+        <text x="535" y="317" textAnchor="middle" fontSize="9.5" fill="#be185d">/mcp  (requires OIDC)</text>
+
+        {/* IdP → Atlas auth arrow */}
+        <line x1="580" y1="178" x2="535" y2="253" stroke="#a855f7" strokeWidth="1.5" strokeDasharray="5,3" markerEnd="url(#arrow)" />
+        <text x="572" y="218" fontSize="9" fill="#9333ea" fontStyle="italic">validates JWT</text>
+
+        {/* ════════════════════════════════════════════════════════
+            ROW 4 — CONSUMERS
+        ════════════════════════════════════════════════════════ */}
+        {/* People / UI consumer */}
+        <rect x="140" y="370" width="160" height="42" rx="8" fill="#f0f9ff" stroke="#7dd3fc" strokeWidth="1.5" />
+        <text x="220" y="388" textAnchor="middle" fontSize="11" fontWeight="600" fill="#075985">Developers / People</text>
+        <text x="220" y="404" textAnchor="middle" fontSize="9.5" fill="#0369a1">Browse catalog (read-only UI)</text>
+
+        {/* Agent / Copilot consumer */}
+        <rect x="330" y="370" width="160" height="42" rx="8" fill="#fdf4ff" stroke="#d8b4fe" strokeWidth="1.5" />
+        <text x="410" y="388" textAnchor="middle" fontSize="11" fontWeight="600" fill="#6b21a8">Agents / Copilot</text>
+        <text x="410" y="404" textAnchor="middle" fontSize="9.5" fill="#7e22ce">MCP Code Mode (search+exec)</text>
+
+        {/* Downstream APIs */}
+        <rect x="630" y="340" width="180" height="52" rx="8" fill="#fff1f2" stroke="#fca5a5" strokeWidth="1.5" />
+        <text x="720" y="360" textAnchor="middle" fontSize="11" fontWeight="600" fill="#991b1b">Downstream APIs</text>
+        <text x="720" y="375" textAnchor="middle" fontSize="9.5" fill="#dc2626">Your real services</text>
+        <text x="720" y="389" textAnchor="middle" fontSize="9.5" fill="#dc2626">Enforce business authz</text>
+
+        {/* Catalog → People arrow */}
+        <line x1="380" y1="335" x2="265" y2="370" stroke="#0ea5e9" strokeWidth="1.5" markerEnd="url(#arrowBlue)" />
+
+        {/* MCP Proxy → Agent arrow */}
+        <line x1="480" y1="335" x2="440" y2="370" stroke="#a855f7" strokeWidth="1.5" markerEnd="url(#arrow)" />
+
+        {/* Atlas MCP Proxy → Downstream APIs (execute + pass-through JWT) */}
+        <line x1="620" y1="290" x2="630" y2="355" stroke="#ef4444" strokeWidth="1.5" markerEnd="url(#arrowOrange)" />
+        <text x="640" y="328" fontSize="9" fill="#ef4444" fontStyle="italic">forwards caller JWT</text>
+
+        {/* ════════════════════════════════════════════════════════
+            LEGEND
+        ════════════════════════════════════════════════════════ */}
+        <rect x="30" y="370" width="100" height="42" rx="6" fill="none" stroke="currentColor" strokeWidth="0.8" opacity="0.3" />
+        <text x="80" y="385" textAnchor="middle" fontSize="9" fill="currentColor" opacity="0.6" fontWeight="600">Legend</text>
+        <line x1="38" y1="396" x2="60" y2="396" stroke="#86efac" strokeWidth="1.5" />
+        <text x="63" y="399" fontSize="8.5" fill="currentColor" opacity="0.7">GitOps publish</text>
+        <line x1="38" y1="406" x2="60" y2="406" stroke="#ef4444" strokeWidth="1.5" />
+        <text x="63" y="409" fontSize="8.5" fill="currentColor" opacity="0.7">JWT pass-through</text>
+      </svg>
     </div>
   )
 }
