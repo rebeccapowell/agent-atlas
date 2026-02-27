@@ -90,7 +90,12 @@ app.MapHealthChecks("/readyz");
 
 // MCP server endpoint (Streamable HTTP transport - used by AI agents / Claude / etc.)
 // RequireAuthorization() ensures JWT validation before any tool call is processed.
-app.MapMcp("/mcp").RequireAuthorization();
+// AllowAnonymous is only set for local dev / MCP Inspector (Atlas__Mcp__AllowAnonymous=true).
+var mcpEndpoint = app.MapMcp("/mcp");
+if (atlasOpts.Mcp.AllowAnonymous)
+    mcpEndpoint.AllowAnonymous();
+else
+    mcpEndpoint.RequireAuthorization();
 
 // Catalog REST API (used by the UI and direct API clients)
 app.MapCatalogApiEndpoints();

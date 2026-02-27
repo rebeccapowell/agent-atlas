@@ -22,6 +22,9 @@ var atlasHost = builder.AddProject<Projects.Atlas_Host>("atlas-host")
     .WithEnvironment("Atlas__PlatformPermissions__Claim", "scope")
     .WithEnvironment("Atlas__Oidc__Issuer",
         ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/atlas"))
+    // Allow anonymous access to /mcp so the MCP Inspector can connect without a JWT.
+    // This is safe for local Aspire dev; do not set in production deployments.
+    .WithEnvironment("Atlas__Mcp__AllowAnonymous", "true")
     .WaitFor(keycloak);
 
 // MCP Inspector – local dev tool for exploring and debugging the Atlas MCP server at /mcp
