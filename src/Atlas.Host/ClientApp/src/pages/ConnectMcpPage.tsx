@@ -1,19 +1,7 @@
 import { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Copy, ExternalLink } from "lucide-react"
-
-interface UseMcpModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
 
 type Platform = "vscode" | "cursor" | "claude-desktop" | "claude-code" | "windsurf" | "m365-copilot"
 
@@ -79,7 +67,8 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
           </a>
         </Button>
         <p className="text-xs text-muted-foreground">
-          Or add manually in VS Code settings under <code className="bg-muted px-1 rounded">github.copilot.chat.mcp.servers</code>:
+          Or add manually in VS Code settings under{" "}
+          <code className="bg-muted px-1 rounded">github.copilot.chat.mcp.servers</code>:
         </p>
         <CopyBlock label="JSON config snippet" value={`{ "agent-atlas": { "type": "sse", "url": "${mcpUrl}" } }`} />
       </div>
@@ -114,7 +103,10 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
         <p className="text-sm text-muted-foreground">
           Add the following to your{" "}
           <code className="bg-muted px-1 rounded">claude_desktop_config.json</code> file. On
-          macOS: <code className="bg-muted px-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+          macOS:{" "}
+          <code className="bg-muted px-1 rounded">
+            ~/Library/Application Support/Claude/claude_desktop_config.json
+          </code>
         </p>
         <CopyBlock label="claude_desktop_config.json" value={configJson} />
       </div>
@@ -130,7 +122,16 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
         </p>
         <CopyBlock label="Terminal command" value={cliCommand} />
         <p className="text-xs text-muted-foreground">
-          Requires the <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" rel="noreferrer" className="underline">Claude Code CLI</a> to be installed.
+          Requires the{" "}
+          <a
+            href="https://docs.anthropic.com/en/docs/claude-code"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            Claude Code CLI
+          </a>{" "}
+          to be installed.
         </p>
       </div>
     )
@@ -151,9 +152,13 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
           </a>
         </Button>
         <p className="text-xs text-muted-foreground">
-          Or manually add to <code className="bg-muted px-1 rounded">~/.codeium/windsurf/mcp_config.json</code>:
+          Or manually add to{" "}
+          <code className="bg-muted px-1 rounded">~/.codeium/windsurf/mcp_config.json</code>:
         </p>
-        <CopyBlock label="mcp_config.json entry" value={`{ "mcpServers": { "agent-atlas": { "serverUrl": "${mcpUrl}", "type": "sse" } } }`} />
+        <CopyBlock
+          label="mcp_config.json entry"
+          value={`{ "mcpServers": { "agent-atlas": { "serverUrl": "${mcpUrl}", "type": "sse" } } }`}
+        />
       </div>
     )
   }
@@ -174,9 +179,26 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
           . Follow these steps to connect Agent Atlas:
         </p>
         <ol className="space-y-1.5 text-sm text-muted-foreground list-decimal list-inside">
-          <li>Open <a href="https://copilotstudio.microsoft.com" target="_blank" rel="noreferrer" className="underline">Copilot Studio</a> and create or open an agent.</li>
-          <li>In the agent editor, go to <strong className="text-foreground">Actions</strong> → <strong className="text-foreground">Add an action</strong>.</li>
-          <li>Select <strong className="text-foreground">Model Context Protocol (MCP)</strong>.</li>
+          <li>
+            Open{" "}
+            <a
+              href="https://copilotstudio.microsoft.com"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Copilot Studio
+            </a>{" "}
+            and create or open an agent.
+          </li>
+          <li>
+            In the agent editor, go to{" "}
+            <strong className="text-foreground">Actions</strong> →{" "}
+            <strong className="text-foreground">Add an action</strong>.
+          </li>
+          <li>
+            Select <strong className="text-foreground">Model Context Protocol (MCP)</strong>.
+          </li>
           <li>Paste the MCP endpoint URL below into the server URL field.</li>
           <li>Save and publish your agent.</li>
         </ol>
@@ -200,53 +222,50 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
   return null
 }
 
-export function UseMcpModal({ open, onOpenChange }: UseMcpModalProps) {
+export function ConnectMcpPage() {
   const [activePlatform, setActivePlatform] = useState<Platform>("vscode")
   const mcpUrl = `${window.location.origin}/mcp`
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <DialogTitle>Use MCP</DialogTitle>
-            <Badge variant="secondary" className="text-xs">Agent Atlas</Badge>
-          </div>
-          <DialogDescription>
-            Connect Agent Atlas tools to your AI coding assistant.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="space-y-8 max-w-2xl">
+      <div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Connect via MCP</h1>
+          <Badge variant="secondary">Agent Atlas</Badge>
+        </div>
+        <p className="text-muted-foreground mt-1">
+          Connect Agent Atlas tools to your AI coding assistant using the Model Context Protocol.
+        </p>
+      </div>
 
-        <div className="space-y-1 mb-1">
-          <p className="text-xs font-medium text-muted-foreground">MCP Endpoint</p>
-          <CopyBlock label="" value={mcpUrl} />
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">MCP Endpoint</p>
+        <CopyBlock label="" value={mcpUrl} />
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium">Add to your tool</p>
+        <div className="flex flex-wrap gap-2">
+          {PLATFORMS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setActivePlatform(p.id)}
+              className={
+                activePlatform === p.id
+                  ? "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-primary-foreground"
+                  : "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border hover:bg-accent hover:text-accent-foreground transition-colors"
+              }
+            >
+              <span>{p.icon}</span>
+              {p.label}
+            </button>
+          ))}
         </div>
 
-        {/* Platform tabs */}
-        <div>
-          <p className="text-xs font-medium text-muted-foreground mb-2">Add to your tool</p>
-          <div className="flex flex-wrap gap-1">
-            {PLATFORMS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setActivePlatform(p.id)}
-                className={
-                  activePlatform === p.id
-                    ? "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground"
-                    : "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border hover:bg-accent hover:text-accent-foreground transition-colors"
-                }
-              >
-                <span>{p.icon}</span>
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="border rounded-md p-4 bg-muted/30">
+        <div className="border rounded-md p-6 bg-muted/30">
           <PlatformContent platform={activePlatform} mcpUrl={mcpUrl} />
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   )
 }

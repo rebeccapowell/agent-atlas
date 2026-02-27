@@ -2,11 +2,12 @@ import { useState } from "react"
 import { ApiListPage } from "@/pages/ApiListPage"
 import { ApiDetailPage } from "@/pages/ApiDetailPage"
 import { ToolListPage } from "@/pages/ToolListPage"
+import { ConnectMcpPage } from "@/pages/ConnectMcpPage"
 import { ThemeToggle } from "@/components/ThemeToggle"
-import { BookOpen, Wrench, Activity } from "lucide-react"
+import { BookOpen, Wrench, Activity, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type Page = "apis" | "tools" | "api-detail"
+type Page = "apis" | "tools" | "api-detail" | "connect-mcp"
 
 function App() {
   const [page, setPage] = useState<Page>("tools")
@@ -36,6 +37,18 @@ function App() {
 
           <nav className="flex items-center gap-1">
             <button
+              onClick={() => setPage("tools")}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                page === "tools"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              <Wrench className="h-4 w-4" />
+              Tools
+            </button>
+            <button
               onClick={() => setPage("apis")}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
@@ -48,16 +61,16 @@ function App() {
               APIs
             </button>
             <button
-              onClick={() => setPage("tools")}
+              onClick={() => setPage("connect-mcp")}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                page === "tools"
+                page === "connect-mcp"
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
-              <Wrench className="h-4 w-4" />
-              Tools
+              <Zap className="h-4 w-4" />
+              Use MCP
             </button>
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </nav>
@@ -66,11 +79,12 @@ function App() {
 
       {/* Main */}
       <main className="container py-8">
+        {page === "tools" && <ToolListPage />}
         {page === "apis" && <ApiListPage onSelectApi={navigateToApiDetail} />}
         {page === "api-detail" && selectedApiId && (
           <ApiDetailPage apiId={selectedApiId} onBack={() => setPage("apis")} />
         )}
-        {page === "tools" && <ToolListPage />}
+        {page === "connect-mcp" && <ConnectMcpPage />}
       </main>
     </div>
   )

@@ -2,11 +2,9 @@ import { useState } from "react"
 import { useTools } from "@/hooks/useCatalog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { SafetyBadge } from "@/components/SafetyBadge"
 import { Badge } from "@/components/ui/badge"
-import { UseMcpModal } from "@/components/UseMcpModal"
-import { Loader2, ServerCrash, Search, Zap } from "lucide-react"
+import { Loader2, ServerCrash, Search } from "lucide-react"
 import type { ToolDefinition } from "@/types/catalog"
 
 interface ToolCardProps {
@@ -136,7 +134,6 @@ export function ToolListPage() {
   const { tools, loading, error } = useTools()
   const [search, setSearch] = useState("")
   const [selectedTool, setSelectedTool] = useState<ToolDefinition | null>(null)
-  const [mcpModalOpen, setMcpModalOpen] = useState(false)
 
   const filtered = tools.filter(
     (t) =>
@@ -173,10 +170,6 @@ export function ToolListPage() {
             {tools.length} tool{tools.length !== 1 ? "s" : ""} available
           </p>
         </div>
-        <Button onClick={() => setMcpModalOpen(true)} className="gap-2">
-          <Zap className="h-4 w-4" />
-          Use MCP
-        </Button>
       </div>
 
       <div className="relative">
@@ -203,8 +196,6 @@ export function ToolListPage() {
       {selectedTool && (
         <ToolDetail tool={selectedTool} onClose={() => setSelectedTool(null)} />
       )}
-
-      <UseMcpModal open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
     </div>
   )
 }
