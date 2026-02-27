@@ -1,4 +1,9 @@
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenAPI docs
+builder.Services.AddOpenApi("v1");
 
 // WARNING: This sample API is for LOCAL DEVELOPMENT AND DEMO PURPOSES ONLY.
 // Token validation is intentionally relaxed so the Aspire demo works without a real IdP.
@@ -18,6 +23,14 @@ builder.Services.AddAuthentication()
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// OpenAPI + Scalar UI (development)
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 

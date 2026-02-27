@@ -1,5 +1,18 @@
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenAPI docs
+builder.Services.AddOpenApi("v1");
+
 var app = builder.Build();
+
+// OpenAPI + Scalar UI
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 // These endpoints are NOT marked as tools in the catalog
 app.MapGet("/products", () => Results.Ok(new[]
