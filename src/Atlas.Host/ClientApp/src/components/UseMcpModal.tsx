@@ -15,7 +15,7 @@ interface UseMcpModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-type Platform = "vscode" | "cursor" | "claude-desktop" | "claude-code" | "windsurf"
+type Platform = "vscode" | "cursor" | "claude-desktop" | "claude-code" | "windsurf" | "m365-copilot"
 
 const PLATFORMS: { id: Platform; label: string; icon: string }[] = [
   { id: "vscode", label: "VS Code", icon: "🆚" },
@@ -23,6 +23,7 @@ const PLATFORMS: { id: Platform; label: string; icon: string }[] = [
   { id: "claude-desktop", label: "Claude Desktop", icon: "🤖" },
   { id: "claude-code", label: "Claude Code", icon: "💻" },
   { id: "windsurf", label: "Windsurf", icon: "🌊" },
+  { id: "m365-copilot", label: "M365 Copilot", icon: "🪟" },
 ]
 
 function useCopy() {
@@ -153,6 +154,45 @@ function PlatformContent({ platform, mcpUrl }: { platform: Platform; mcpUrl: str
           Or manually add to <code className="bg-muted px-1 rounded">~/.codeium/windsurf/mcp_config.json</code>:
         </p>
         <CopyBlock label="mcp_config.json entry" value={`{ "mcpServers": { "agent-atlas": { "serverUrl": "${mcpUrl}", "type": "sse" } } }`} />
+      </div>
+    )
+  }
+
+  if (platform === "m365-copilot") {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Microsoft 365 Copilot supports MCP servers via{" "}
+          <a
+            href="https://copilotstudio.microsoft.com"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            Microsoft Copilot Studio
+          </a>
+          . Follow these steps to connect Agent Atlas:
+        </p>
+        <ol className="space-y-1.5 text-sm text-muted-foreground list-decimal list-inside">
+          <li>Open <a href="https://copilotstudio.microsoft.com" target="_blank" rel="noreferrer" className="underline">Copilot Studio</a> and create or open an agent.</li>
+          <li>In the agent editor, go to <strong className="text-foreground">Actions</strong> → <strong className="text-foreground">Add an action</strong>.</li>
+          <li>Select <strong className="text-foreground">Model Context Protocol (MCP)</strong>.</li>
+          <li>Paste the MCP endpoint URL below into the server URL field.</li>
+          <li>Save and publish your agent.</li>
+        </ol>
+        <CopyBlock label="MCP endpoint URL" value={mcpUrl} />
+        <p className="text-xs text-muted-foreground">
+          Requires a Microsoft 365 Copilot licence and admin access to Copilot Studio. See the{" "}
+          <a
+            href="https://learn.microsoft.com/microsoft-copilot-studio/agent-extend-action-mcp"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            Copilot Studio MCP documentation
+          </a>{" "}
+          for more details.
+        </p>
       </div>
     )
   }
