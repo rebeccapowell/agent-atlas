@@ -14,6 +14,7 @@ public interface ICatalogLoader
     Catalog? GetCatalog();
     IReadOnlyList<ApiEntry> GetApis();
     IReadOnlyList<ToolDefinition> GetTools();
+    IReadOnlyList<ApiEndpointEntry> GetEndpointsForApi(string apiId);
 }
 
 public class CatalogLoader : ICatalogLoader
@@ -23,6 +24,7 @@ public class CatalogLoader : ICatalogLoader
     private Catalog? _catalog;
     private readonly List<ApiEntry> _apis = new();
     private readonly List<ToolDefinition> _tools = new();
+    private readonly Dictionary<string, List<ApiEndpointEntry>> _endpoints = new();
 
     public CatalogLoader(IOptions<AtlasOptions> options, ILogger<CatalogLoader> logger)
     {
@@ -117,101 +119,115 @@ public class CatalogLoader : ICatalogLoader
                 throw new InvalidOperationException($"OpenAPI parsing errors in {openApiFile}");
         }
 
-        ExtractTools(result.OpenApiDocument, apiEntry);
+        ExtractOperations(result.OpenApiDocument, apiEntry);
     }
 
-    private void ExtractTools(OpenApiDocument doc, ApiEntry apiEntry)
+    private void ExtractOperations(OpenApiDocument doc, ApiEntry apiEntry)
     {
+        var endpoints = new List<ApiEndpointEntry>();
+
         foreach (var path in doc.Paths)
         {
             foreach (var op in path.Value.Operations)
             {
-                if (!op.Value.Extensions.TryGetValue("x-mcp", out var mcpExt))
-                    continue;
-
-                if (mcpExt is not Microsoft.OpenApi.Any.OpenApiObject mcpObj)
-                    continue;
-
-                if (!mcpObj.TryGetValue("enabled", out var enabledVal))
-                    continue;
-
-                if (enabledVal is not Microsoft.OpenApi.Any.OpenApiBoolean enabledBool || !enabledBool.Value)
-                    continue;
-
-                // Extract tool name
-                string toolId;
-                if (mcpObj.TryGetValue("name", out var nameVal) && nameVal is Microsoft.OpenApi.Any.OpenApiString nameStr)
-                    toolId = nameStr.Value;
-                else
-                    toolId = op.Value.OperationId ?? $"{apiEntry.ApiId}.{op.Key}.{path.Key}".Replace("/", "_");
-
-                // Extract safety
-                string safety = "read";
-                if (mcpObj.TryGetValue("safety", out var safetyVal) && safetyVal is Microsoft.OpenApi.Any.OpenApiString safetyStr)
-                    safety = safetyStr.Value;
-
-                // Extract requiredPermissions
-                string[] requiredPerms = [];
-                if (mcpObj.TryGetValue("requiredPermissions", out var permsVal) && permsVal is Microsoft.OpenApi.Any.OpenApiArray permsArr)
+                var endpoint = new ApiEndpointEntry
                 {
-                    requiredPerms = permsArr
-                        .OfType<Microsoft.OpenApi.Any.OpenApiString>()
-                        .Select(s => s.Value)
-                        .ToArray();
-                }
-
-                // x-mcp.requiredPermissions is required for catalog hygiene (informational; Atlas does not
-                // enforce downstream permissions). In strict mode this is a warning; a future policy option
-                // could treat it as a fatal validation error.
-                if (requiredPerms.Length == 0)
-                {
-                    _logger.LogWarning("Tool {ToolId} missing x-mcp.requiredPermissions (catalog hygiene warning)", toolId);
-                    if (_options.CatalogStrict)
-                        _logger.LogWarning("Set Atlas:CatalogStrict=false to suppress this warning, or add x-mcp.requiredPermissions to the operation");
-                }
-
-                // Extract description override
-                string summary = op.Value.Summary ?? string.Empty;
-                string description = op.Value.Description ?? string.Empty;
-                if (mcpObj.TryGetValue("description", out var descVal) && descVal is Microsoft.OpenApi.Any.OpenApiString descStr)
-                    description = descStr.Value;
-
-                // Extract tags
-                var tags = new List<string>();
-                tags.AddRange(op.Value.Tags.Select(t => t.Name));
-                if (mcpObj.TryGetValue("tags", out var tagsVal) && tagsVal is Microsoft.OpenApi.Any.OpenApiArray tagsArr)
-                {
-                    tags.AddRange(tagsArr.OfType<Microsoft.OpenApi.Any.OpenApiString>().Select(s => s.Value));
-                }
-
-                // Extract entitlementHint
-                string? entitlementHint = null;
-                if (mcpObj.TryGetValue("entitlementHint", out var hintVal) && hintVal is Microsoft.OpenApi.Any.OpenApiString hintStr)
-                    entitlementHint = hintStr.Value;
-
-                var tool = new ToolDefinition
-                {
-                    ToolId = toolId,
-                    ApiId = apiEntry.ApiId,
-                    DisplayName = summary.Length > 0 ? summary : toolId,
-                    Summary = summary,
-                    Description = description,
                     Method = op.Key.ToString().ToUpperInvariant(),
                     Path = path.Key,
-                    Safety = safety,
-                    RequiredPermissions = requiredPerms,
-                    Tags = [..tags],
-                    EntitlementHint = entitlementHint,
                     OperationId = op.Value.OperationId ?? string.Empty,
+                    Summary = op.Value.Summary ?? string.Empty,
+                    Description = op.Value.Description ?? string.Empty,
+                    Tags = op.Value.Tags.Select(t => t.Name).ToArray(),
                 };
 
-                _tools.Add(tool);
-                _logger.LogDebug("Extracted tool {ToolId} from {ApiId}", toolId, apiEntry.ApiId);
+                // Check for x-mcp extension
+                if (op.Value.Extensions.TryGetValue("x-mcp", out var mcpExt) &&
+                    mcpExt is Microsoft.OpenApi.Any.OpenApiObject mcpObj &&
+                    mcpObj.TryGetValue("enabled", out var enabledVal) &&
+                    enabledVal is Microsoft.OpenApi.Any.OpenApiBoolean { Value: true })
+                {
+                    // Extract tool name
+                    string toolId;
+                    if (mcpObj.TryGetValue("name", out var nameVal) && nameVal is Microsoft.OpenApi.Any.OpenApiString nameStr)
+                        toolId = nameStr.Value;
+                    else
+                        toolId = op.Value.OperationId ?? $"{apiEntry.ApiId}.{op.Key}.{path.Key}".Replace("/", "_");
+
+                    // Extract safety
+                    string safety = "read";
+                    if (mcpObj.TryGetValue("safety", out var safetyVal) && safetyVal is Microsoft.OpenApi.Any.OpenApiString safetyStr)
+                        safety = safetyStr.Value;
+
+                    // Extract requiredPermissions
+                    string[] requiredPerms = [];
+                    if (mcpObj.TryGetValue("requiredPermissions", out var permsVal) && permsVal is Microsoft.OpenApi.Any.OpenApiArray permsArr)
+                    {
+                        requiredPerms = permsArr
+                            .OfType<Microsoft.OpenApi.Any.OpenApiString>()
+                            .Select(s => s.Value)
+                            .ToArray();
+                    }
+
+                    if (requiredPerms.Length == 0)
+                    {
+                        _logger.LogWarning("Tool {ToolId} missing x-mcp.requiredPermissions (catalog hygiene warning)", toolId);
+                        if (_options.CatalogStrict)
+                            _logger.LogWarning("Set Atlas:CatalogStrict=false to suppress this warning, or add x-mcp.requiredPermissions to the operation");
+                    }
+
+                    // Extract description override
+                    string summary = op.Value.Summary ?? string.Empty;
+                    string description = op.Value.Description ?? string.Empty;
+                    if (mcpObj.TryGetValue("description", out var descVal) && descVal is Microsoft.OpenApi.Any.OpenApiString descStr)
+                        description = descStr.Value;
+
+                    // Extract tags
+                    var tags = new List<string>();
+                    tags.AddRange(op.Value.Tags.Select(t => t.Name));
+                    if (mcpObj.TryGetValue("tags", out var tagsVal) && tagsVal is Microsoft.OpenApi.Any.OpenApiArray tagsArr)
+                    {
+                        tags.AddRange(tagsArr.OfType<Microsoft.OpenApi.Any.OpenApiString>().Select(s => s.Value));
+                    }
+
+                    // Extract entitlementHint
+                    string? entitlementHint = null;
+                    if (mcpObj.TryGetValue("entitlementHint", out var hintVal) && hintVal is Microsoft.OpenApi.Any.OpenApiString hintStr)
+                        entitlementHint = hintStr.Value;
+
+                    var tool = new ToolDefinition
+                    {
+                        ToolId = toolId,
+                        ApiId = apiEntry.ApiId,
+                        DisplayName = summary.Length > 0 ? summary : toolId,
+                        Summary = summary,
+                        Description = description,
+                        Method = op.Key.ToString().ToUpperInvariant(),
+                        Path = path.Key,
+                        Safety = safety,
+                        RequiredPermissions = requiredPerms,
+                        Tags = [..tags],
+                        EntitlementHint = entitlementHint,
+                        OperationId = op.Value.OperationId ?? string.Empty,
+                    };
+
+                    _tools.Add(tool);
+                    _logger.LogDebug("Extracted tool {ToolId} from {ApiId}", toolId, apiEntry.ApiId);
+
+                    endpoint.IsMcpTool = true;
+                    endpoint.ToolId = toolId;
+                    endpoint.Safety = safety;
+                }
+
+                endpoints.Add(endpoint);
             }
         }
+
+        _endpoints[apiEntry.ApiId] = endpoints;
     }
 
     public Catalog? GetCatalog() => _catalog;
     public IReadOnlyList<ApiEntry> GetApis() => _apis;
     public IReadOnlyList<ToolDefinition> GetTools() => _tools;
+    public IReadOnlyList<ApiEndpointEntry> GetEndpointsForApi(string apiId)
+        => _endpoints.TryGetValue(apiId, out var eps) ? eps : [];
 }

@@ -7,6 +7,18 @@ export interface ApiEntry {
   environments: Record<string, string>
 }
 
+export interface ApiEndpointEntry {
+  method: string
+  path: string
+  operationId: string
+  summary: string
+  description: string
+  tags: string[]
+  isMcpTool: boolean
+  toolId?: string
+  safety?: string
+}
+
 export interface ToolDefinition {
   toolId: string
   apiId: string

@@ -17,6 +17,19 @@ public class ApiEntry
     public string BaseUrl { get; set; } = string.Empty;
 }
 
+public class ApiEndpointEntry
+{
+    public string Method { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
+    public string OperationId { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string[] Tags { get; set; } = [];
+    public bool IsMcpTool { get; set; }
+    public string? ToolId { get; set; }
+    public string? Safety { get; set; }
+}
+
 public class ToolDefinition
 {
     public string ToolId { get; set; } = string.Empty;

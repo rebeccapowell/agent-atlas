@@ -1,20 +1,27 @@
 import { useState } from "react"
 import { ApiListPage } from "@/pages/ApiListPage"
+import { ApiDetailPage } from "@/pages/ApiDetailPage"
 import { ToolListPage } from "@/pages/ToolListPage"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { BookOpen, Wrench, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type Page = "apis" | "tools"
+type Page = "apis" | "tools" | "api-detail"
 
 function App() {
   const [page, setPage] = useState<Page>("tools")
+  const [selectedApiId, setSelectedApiId] = useState<string | null>(null)
   const [theme, setTheme] = useState<"light" | "dark">("light")
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light"
     setTheme(next)
     document.documentElement.classList.toggle("dark", next === "dark")
+  }
+
+  const navigateToApiDetail = (apiId: string) => {
+    setSelectedApiId(apiId)
+    setPage("api-detail")
   }
 
   return (
@@ -32,7 +39,7 @@ function App() {
               onClick={() => setPage("apis")}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                page === "apis"
+                page === "apis" || page === "api-detail"
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
@@ -59,7 +66,10 @@ function App() {
 
       {/* Main */}
       <main className="container py-8">
-        {page === "apis" && <ApiListPage />}
+        {page === "apis" && <ApiListPage onSelectApi={navigateToApiDetail} />}
+        {page === "api-detail" && selectedApiId && (
+          <ApiDetailPage apiId={selectedApiId} onBack={() => setPage("apis")} />
+        )}
         {page === "tools" && <ToolListPage />}
       </main>
     </div>

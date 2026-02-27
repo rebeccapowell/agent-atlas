@@ -9,6 +9,8 @@ public static class CatalogApiEndpoints
         var api = app.MapGroup("/v1");
 
         api.MapGet("/apis", (ICatalogLoader catalog) => Results.Ok(catalog.GetApis())).AllowAnonymous();
+        api.MapGet("/apis/{apiId}/endpoints", (string apiId, ICatalogLoader catalog) =>
+            Results.Ok(catalog.GetEndpointsForApi(apiId))).AllowAnonymous();
         api.MapGet("/tools", (ICatalogLoader catalog) => Results.Ok(catalog.GetTools())).AllowAnonymous();
         api.MapGet("/tools/{toolId}", (string toolId, IToolIndex index) =>
         {
