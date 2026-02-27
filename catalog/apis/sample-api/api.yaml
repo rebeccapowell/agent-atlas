@@ -1,0 +1,8 @@
+apiId: sample-api
+displayName: "Sample Customer API"
+owner: "platform-team"
+description: "A sample API that demonstrates tool-enabled operations with x-mcp extensions."
+baseUrl: "http://localhost:5101"
+environments:
+  development: "http://localhost:5101"
+  production: "https://sample-api.example.com"

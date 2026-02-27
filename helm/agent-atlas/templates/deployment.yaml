@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agent-atlas.fullname" . }}
+  labels:
+    {{- include "agent-atlas.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "agent-atlas.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "agent-atlas.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "agent-atlas.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.catalog.gitSync.enabled }}
+      initContainers:
+        - name: git-sync-init
+          image: {{ .Values.catalog.gitSync.image }}
+          args:
+            - --repo={{ .Values.catalog.gitSync.repo }}
+            - --branch={{ .Values.catalog.gitSync.branch }}
+            - --depth={{ .Values.catalog.gitSync.depth }}
+            - --one-time
+            - --root=/catalog
+          volumeMounts:
+            - name: catalog
+              mountPath: /catalog
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "agent-atlas.fullname" . }}-config
+          {{- with .Values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: catalog
+              mountPath: {{ .Values.atlas.catalogPath }}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- if .Values.catalog.gitSync.enabled }}
+        - name: git-sync
+          image: {{ .Values.catalog.gitSync.image }}
+          args:
+            - --repo={{ .Values.catalog.gitSync.repo }}
+            - --branch={{ .Values.catalog.gitSync.branch }}
+            - --period={{ .Values.catalog.gitSync.period }}
+            - --depth={{ .Values.catalog.gitSync.depth }}
+            - --root=/catalog
+          resources:
+            {{- toYaml .Values.catalog.gitSync.resources | nindent 12 }}
+          volumeMounts:
+            - name: catalog
+              mountPath: /catalog
+        {{- end }}
+      volumes:
+        {{- if .Values.catalog.configMap.enabled }}
+        - name: catalog
+          configMap:
+            name: {{ .Values.catalog.configMap.name }}
+        {{- else if .Values.catalog.pvc.enabled }}
+        - name: catalog
+          persistentVolumeClaim:
+            claimName: {{ .Values.catalog.pvc.claimName }}
+        {{- else if .Values.catalog.gitSync.enabled }}
+        - name: catalog
+          emptyDir: {}
+        {{- else }}
+        - name: catalog
+          emptyDir: {}
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

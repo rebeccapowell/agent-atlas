@@ -1,0 +1,54 @@
+openapi: "3.0.3"
+info:
+  title: "Products API"
+  version: "1.0.0"
+  description: "Products API - not tool-enabled"
+servers:
+  - url: "http://localhost:5102"
+paths:
+  /products:
+    get:
+      operationId: ListProducts
+      summary: "List products"
+      description: "Returns a list of all products. NOT tool-enabled."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+  /products/{id}:
+    get:
+      operationId: GetProduct
+      summary: "Get product by ID"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: "Not Found"
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        description:
+          type: string

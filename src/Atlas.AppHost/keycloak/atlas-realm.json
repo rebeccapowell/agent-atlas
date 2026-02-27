@@ -1,0 +1,117 @@
+{
+  "realm": "atlas",
+  "displayName": "Agent Atlas",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+
+  "clientScopes": [
+    {
+      "name": "platform-code-mode:search",
+      "description": "Search the Agent Atlas tool catalog",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "platform-code-mode:execute",
+      "description": "Execute plans via Agent Atlas MCP",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "someapi:customers:read",
+      "description": "Read access to Sample API customers resource",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }
+  ],
+
+  "clients": [
+    {
+      "clientId": "atlas-mcp-client",
+      "name": "Atlas MCP Client",
+      "description": "M2M client for programmatic Atlas MCP access (client_credentials)",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "atlas-mcp-secret",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "platform-code-mode:search",
+        "platform-code-mode:execute",
+        "someapi:customers:read"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "atlas-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "included.custom.audience": "api://agent-atlas"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "atlas-ui-client",
+      "name": "Atlas UI Client",
+      "description": "Public PKCE client for the Atlas read-only UI",
+      "enabled": true,
+      "publicClient": true,
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["http://localhost:*/*", "https://localhost:*/*"],
+      "webOrigins": ["http://localhost:*", "https://localhost:*"],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "platform-code-mode:search"
+      ],
+      "optionalClientScopes": [
+        "platform-code-mode:execute"
+      ],
+      "protocolMappers": [
+        {
+          "name": "atlas-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "included.custom.audience": "api://agent-atlas"
+          }
+        }
+      ]
+    }
+  ]
+}
