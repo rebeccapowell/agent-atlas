@@ -1,0 +1,89 @@
+openapi: "3.0.3"
+info:
+  title: "Sample Customer API"
+  version: "1.0.0"
+  description: "Sample API with tool-enabled operations for Agent Atlas demo"
+servers:
+  - url: "http://localhost:5101"
+    description: "Development"
+paths:
+  /customers:
+    get:
+      operationId: ListCustomers
+      summary: "List customers"
+      description: "Returns a list of all customers. Requires someapi:customers:read permission."
+      tags:
+        - customers
+      x-mcp:
+        enabled: true
+        name: "sample-api.customers.list"
+        safety: read
+        requiredPermissions:
+          - "someapi:customers:read"
+        entitlementHint: "Request Access Package: Sample API - Readers"
+        tags:
+          - customers
+          - list
+      parameters:
+        - name: status
+          in: query
+          description: "Filter by status (active/inactive)"
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+        "401":
+          description: "Unauthorized"
+        "403":
+          description: "Forbidden - missing someapi:customers:read"
+  /customers/{id}:
+    get:
+      operationId: GetCustomer
+      summary: "Get customer by ID"
+      description: "Returns a single customer by ID."
+      tags:
+        - customers
+      x-mcp:
+        enabled: true
+        name: "sample-api.customers.get"
+        safety: read
+        requiredPermissions:
+          - "someapi:customers:read"
+        entitlementHint: "Request Access Package: Sample API - Readers"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          description: "Not Found"
+components:
+  schemas:
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+        email:
+          type: string

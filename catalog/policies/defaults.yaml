@@ -1,0 +1,8 @@
+# Platform-level policy overrides
+version: 1
+# Set to true to block all destructive tools globally
+blockDestructiveTools: false
+# Set to true to require explicit execute:write permission for write/destructive tools
+requireExecuteWriteForNonRead: false
+# Disabled tools (by toolId) - these tools won't appear in search results even if marked enabled
+disabledTools: []

@@ -1,0 +1,7 @@
+apiId: products-api
+displayName: "Products API"
+owner: "product-team"
+description: "A sample products API. Its operations are NOT marked as tools in the catalog."
+baseUrl: "http://localhost:5102"
+environments:
+  development: "http://localhost:5102"

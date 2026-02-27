@@ -1,0 +1,6 @@
+version: 1
+organizationName: "Agent Atlas Demo"
+defaultSafetyTierPolicy: read-only
+oidc:
+  issuer: "http://localhost:5200"
+  audience: "api://agent-atlas"
