@@ -17,6 +17,8 @@ env:
 permissions:
   contents: read
   packages: write
+  id-token: write
+  attestations: write
 
 jobs:
   docker:
@@ -53,8 +55,13 @@ jobs:
             type=sha,prefix=sha-,format=short
             # latest only for full stable releases (not pre-releases)
             type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Agent Atlas — enterprise MCP gateway for governed API discovery and execution
+            org.opencontainers.image.licenses=MIT
 
       - name: Build and push
+        id: push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -65,3 +72,5 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+          provenance: true
+          sbom: true
