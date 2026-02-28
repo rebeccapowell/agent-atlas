@@ -1,4 +1,4 @@
-name: Squad Docs — Build & Deploy
+name: Docs — Build & Deploy
 # Project type was not detected — configure documentation build commands below
 
 on:
@@ -7,7 +7,7 @@ on:
     branches: [preview]
     paths:
       - 'docs/**'
-      - '.github/workflows/squad-docs.yml'
+      - '.github/workflows/docs.yml'
 
 permissions:
   contents: read
@@ -24,4 +24,4 @@ jobs:
         run: |
           # TODO: Add your documentation build commands here
           # This workflow is optional — remove or customize it for your project
-          echo "No docs build commands configured — update or remove squad-docs.yml"
+          echo "No docs build commands configured — update or remove docs.yml"

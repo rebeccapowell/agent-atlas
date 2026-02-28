@@ -1,6 +1,7 @@
 using Atlas.Host.Models;
 using Atlas.Host.Services;
-using Moq;
+using NSubstitute;
+using Shouldly;
 using Xunit;
 
 namespace Atlas.Host.Tests;
@@ -38,89 +39,89 @@ public class ToolIndexTests
     [Fact]
     public void Search_NoFilters_ReturnsAllTools()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var results = index.Search(null, null, null, null);
 
-        Assert.Equal(2, results.Count);
+        results.Count.ShouldBe(2);
     }
 
     [Fact]
     public void Search_ByQuery_ReturnsMatchingTools()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var results = index.Search("customer", null, null, null);
 
-        Assert.Single(results);
-        Assert.Equal("customers-read", results[0].ToolId);
+        results.ShouldHaveSingleItem();
+        results[0].ToolId.ShouldBe("customers-read");
     }
 
     [Fact]
     public void Search_ByApiId_FiltersCorrectly()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var results = index.Search(null, "orders-api", null, null);
 
-        Assert.Single(results);
-        Assert.Equal("orders-create", results[0].ToolId);
+        results.ShouldHaveSingleItem();
+        results[0].ToolId.ShouldBe("orders-create");
     }
 
     [Fact]
     public void Search_BySafety_FiltersCorrectly()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var results = index.Search(null, null, null, "read");
 
-        Assert.Single(results);
-        Assert.Equal("customers-read", results[0].ToolId);
+        results.ShouldHaveSingleItem();
+        results[0].ToolId.ShouldBe("customers-read");
     }
 
     [Fact]
     public void Search_ByTags_FiltersCorrectly()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var results = index.Search(null, null, ["write"], null);
 
-        Assert.Single(results);
-        Assert.Equal("orders-create", results[0].ToolId);
+        results.ShouldHaveSingleItem();
+        results[0].ToolId.ShouldBe("orders-create");
     }
 
     [Fact]
     public void GetById_ExistingId_ReturnsTool()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var tool = index.GetById("customers-read");
 
-        Assert.NotNull(tool);
-        Assert.Equal("Read Customers", tool.DisplayName);
+        tool.ShouldNotBeNull();
+        tool.DisplayName.ShouldBe("Read Customers");
     }
 
     [Fact]
     public void GetById_UnknownId_ReturnsNull()
     {
-        var loader = new Mock<ICatalogLoader>();
-        loader.Setup(l => l.GetTools()).Returns(SampleTools());
-        var index = new ToolIndex(loader.Object);
+        var loader = Substitute.For<ICatalogLoader>();
+        loader.GetTools().Returns(SampleTools());
+        var index = new ToolIndex(loader);
 
         var tool = index.GetById("does-not-exist");
 
-        Assert.Null(tool);
+        tool.ShouldBeNull();
     }
 }
