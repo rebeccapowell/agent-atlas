@@ -1,0 +1,11 @@
+{
+  "assignments": [
+    {
+      "assignment_id": "agent-atlas-v1",
+      "timestamp": "2026-02-28T21:34:47Z",
+      "universe": "The Expanse",
+      "repository": "agent-atlas",
+      "agents": ["Holden", "Naomi", "Alex", "Amos", "Bobbie", "Drummer"]
+    }
+  ]
+}

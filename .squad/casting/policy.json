@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "universe_allowlist": "all",
+  "max_team_size": 20,
+  "overflow_strategy": ["diegetic_expansion", "thematic_promotion", "structural_mirroring"],
+  "exempt_names": ["Scribe", "Ralph", "@copilot"],
+  "enforce_single_universe": true
+}

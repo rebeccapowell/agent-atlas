@@ -1,0 +1,12 @@
+{
+  "agents": [
+    { "persistent_name": "Holden", "role": "Lead", "universe": "The Expanse", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Naomi", "role": ".NET/Aspire Dev", "universe": "The Expanse", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Alex", "role": "React/UI Dev", "universe": "The Expanse", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Amos", "role": "Platform Specialist", "universe": "The Expanse", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Bobbie", "role": "GitHub Pipelines", "universe": "The Expanse", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Drummer", "role": "Tester", "universe": "The Expanse", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Scribe", "role": "Session Logger", "universe": "exempt", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Ralph", "role": "Work Monitor", "universe": "exempt", "created_at": "2026-02-28T21:34:47Z", "legacy_named": false, "status": "active" }
+  ]
+}
