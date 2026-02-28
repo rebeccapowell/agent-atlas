@@ -4,8 +4,8 @@
       "type": "local",
       "command": "aspire",
       "args": [
-        "agent",
-        "mcp"
+        "mcp",
+        "start"
       ],
       "env": {
         "DOTNET_ROOT": "${DOTNET_ROOT}"
