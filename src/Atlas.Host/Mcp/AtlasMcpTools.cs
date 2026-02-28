@@ -6,6 +6,7 @@ using Atlas.Host.Services;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Text.Json;
 
 namespace Atlas.Host.Mcp;
 
@@ -125,7 +126,7 @@ public sealed class AtlasMcpTools(
         [Description(
             "The execution plan as a JSON object. Supports 'call', 'foreach', 'if', and 'return' steps. " +
             "Example: {\"steps\":[{\"type\":\"call\",\"toolId\":\"sample-api.customers.list\",\"args\":{},\"saveAs\":\"customers\"}]}"
-        )] object plan,
+        )] JsonElement plan,
         [Description("Execution mode: 'dryRun' (validate only) or 'run' (execute).")] string mode = "dryRun",
         [Description("Optional environment name to select the base URL (e.g. 'production').")] string? environment = null)
     {
