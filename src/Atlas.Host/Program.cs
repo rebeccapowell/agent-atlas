@@ -64,7 +64,8 @@ builder.Services.AddSingleton<IToolIndex, ToolIndex>();
 
 // Execution
 builder.Services.AddSingleton<IExecutionEngine, ExecutionEngine>();
-builder.Services.AddHttpClient("atlas-exec");
+builder.Services.AddHttpClient("atlas-exec")
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
 // HTTP context accessor - required for MCP tools to read caller claims
 builder.Services.AddHttpContextAccessor();

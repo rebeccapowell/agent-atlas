@@ -8,7 +8,7 @@ namespace Atlas.Host.Execution;
 
 public interface IExecutionEngine
 {
-    Task<McpExecuteResult> ExecuteAsync(object plan, string mode, string? environment, string token, CancellationToken ct = default);
+    Task<McpExecuteResult> ExecuteAsync(JsonElement plan, string mode, string? environment, string token, CancellationToken ct = default);
 }
 
 public class ExecutionEngine : IExecutionEngine
@@ -33,25 +33,29 @@ public class ExecutionEngine : IExecutionEngine
         _logger = logger;
     }
 
-    public async Task<McpExecuteResult> ExecuteAsync(object plan, string mode, string? environment, string token, CancellationToken ct = default)
+    public async Task<McpExecuteResult> ExecuteAsync(JsonElement plan, string mode, string? environment, string token, CancellationToken ct = default)
     {
-        JsonElement planEl;
-        try
-        {
-            var planJson = JsonSerializer.Serialize(plan);
-            planEl = JsonSerializer.Deserialize<JsonElement>(planJson);
-        }
-        catch (Exception ex)
-        {
-            return new McpExecuteResult(false, mode, Error: $"Invalid plan format: {ex.Message}");
-        }
+        if (plan.ValueKind == JsonValueKind.Undefined)
+            return new McpExecuteResult(false, mode, Error: "Invalid plan format: plan is undefined");
+
+        // Enforce the MaxSeconds wall-clock budget in addition to the caller's token
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_limits.MaxSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+        var execCt = linkedCts.Token;
 
         var context = new ExecContext(mode == "dryRun", _limits, token, environment);
         var steps = new List<McpExecuteStep>();
 
+        // Unwrap plan root: support {"steps":[...]} as well as a bare array or single step
+        var stepsEl = plan.ValueKind == JsonValueKind.Object && plan.TryGetProperty("steps", out var s) ? s : plan;
+
         try
         {
-            await ExecuteStepsAsync(planEl, context, steps, ct);
+            await ExecuteStepsAsync(stepsEl, context, steps, execCt);
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return new McpExecuteResult(false, mode, Error: $"Execution exceeded the {_limits.MaxSeconds}s time limit", Steps: steps.ToArray());
         }
         catch (ExecutionLimitException ex)
         {
@@ -145,13 +149,17 @@ public class ExecutionEngine : IExecutionEngine
             }
         }
 
-        var url = baseUrl.TrimEnd('/') + path;
+        // Build the URL using UriBuilder to avoid path/slash ambiguity
+        var uriBuilder = new UriBuilder(baseUrl.TrimEnd('/'));
+        uriBuilder.Path = uriBuilder.Path.TrimEnd('/') + path;
 
         if (tool.Method == "GET" && args.Count > 0)
         {
-            var query = string.Join("&", args.Select(a => $"{Uri.EscapeDataString(a.Key)}={Uri.EscapeDataString(a.Value?.ToString() ?? "")}"));
-            url += "?" + query;
+            uriBuilder.Query = string.Join("&", args.Select(a =>
+                $"{Uri.EscapeDataString(a.Key)}={Uri.EscapeDataString(a.Value?.ToString() ?? "")}"));
         }
+
+        var url = uriBuilder.Uri.AbsoluteUri;
 
         var stepRecord = new McpExecuteStep(toolId, tool.Method, url, DryRun: ctx.DryRun);
         stepLog.Add(stepRecord);
@@ -177,16 +185,27 @@ public class ExecutionEngine : IExecutionEngine
         var response = await client.SendAsync(request, ct);
         sw.Stop();
 
-        var body = await response.Content.ReadAsStringAsync(ct);
-        ctx.CheckResponseSize(body.Length, _limits.MaxResponseBytes);
+        // Read as bytes for accurate size enforcement (body.Length would be character count, not bytes)
+        var bodyBytes = await response.Content.ReadAsByteArrayAsync(ct);
+        ctx.CheckResponseSize(bodyBytes.Length);
 
         var stepFinal = stepRecord with { StatusCode = (int)response.StatusCode, DurationMs = sw.ElapsedMilliseconds };
         stepLog[^1] = stepFinal;
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"Downstream API returned {(int)response.StatusCode}: {body}");
+            // Log the full body at a controlled level; do not expose potentially-sensitive content to the caller
+            var bodyPreview = bodyBytes.Length > 500
+                ? System.Text.Encoding.UTF8.GetString(bodyBytes, 0, 500) + "…"
+                : System.Text.Encoding.UTF8.GetString(bodyBytes);
+            _logger.LogWarning("Downstream call to {ToolId} returned {StatusCode}. Body (truncated): {Body}",
+                toolId, (int)response.StatusCode, bodyPreview);
+            var errorMsg = $"Downstream API '{toolId}' returned {(int)response.StatusCode}";
+            stepLog[^1] = stepFinal with { Error = errorMsg };
+            throw new InvalidOperationException(errorMsg);
         }
+
+        var body = System.Text.Encoding.UTF8.GetString(bodyBytes);
 
         object? result = null;
         if (!string.IsNullOrWhiteSpace(body))
@@ -204,11 +223,18 @@ public class ExecutionEngine : IExecutionEngine
         var asVar = step.GetProperty("as").GetString()!;
         var doSteps = step.GetProperty("do");
 
-        var items = ctx.ResolveVariable(itemsRef);
-        if (items is not System.Collections.IEnumerable enumerable)
+        var rawItems = ctx.ResolveVariable(itemsRef);
+
+        // JsonElement arrays are not IEnumerable — handle them explicitly before the generic fallback
+        IEnumerable<object?> items;
+        if (rawItems is JsonElement je && je.ValueKind == JsonValueKind.Array)
+            items = je.EnumerateArray().Cast<object?>();
+        else if (rawItems is System.Collections.IEnumerable enumerable and not string)
+            items = enumerable.Cast<object?>();
+        else
             throw new InvalidOperationException($"Variable '{itemsRef}' is not enumerable");
 
-        foreach (var item in enumerable)
+        foreach (var item in items)
         {
             ctx.SetVariable(asVar, item);
             await ExecuteStepsAsync(doSteps, ctx, stepLog, ct);
@@ -281,6 +307,7 @@ public class ExecContext
     private int _steps;
     private int _calls;
     private long _bytesDownloaded;
+    private readonly ExecLimitsOptions _limits;
 
     public bool DryRun { get; }
     public string Token { get; }
@@ -291,6 +318,7 @@ public class ExecContext
     public ExecContext(bool dryRun, ExecLimitsOptions limits, string token, string? environment)
     {
         DryRun = dryRun;
+        _limits = limits;
         Token = token;
         Environment = environment;
     }
@@ -307,16 +335,17 @@ public class ExecContext
             throw new ExecutionLimitException($"Exceeded max HTTP calls ({max})");
     }
 
-    public void CheckResponseSize(long bytes, long maxBytes)
+    /// <summary>
+    /// Checks that a single response does not exceed <see cref="ExecLimitsOptions.MaxResponseBytes"/>
+    /// and that the cumulative download across the whole plan does not exceed <see cref="ExecLimitsOptions.MaxBytes"/>.
+    /// </summary>
+    public void CheckResponseSize(long bytes)
     {
         _bytesDownloaded += bytes;
-        if (bytes > maxBytes)
-            throw new ExecutionLimitException($"Response exceeds max response bytes ({maxBytes})");
-        // Total-downloaded cap is 10x the per-response limit to allow multi-step plans while still
-        // bounding overall data transfer without requiring a separate config value.
-        const int totalDownloadMultiplier = 10;
-        if (_bytesDownloaded > maxBytes * totalDownloadMultiplier)
-            throw new ExecutionLimitException($"Total downloaded bytes exceeds limit ({maxBytes * totalDownloadMultiplier})");
+        if (bytes > _limits.MaxResponseBytes)
+            throw new ExecutionLimitException($"Response exceeds max response bytes ({_limits.MaxResponseBytes})");
+        if (_bytesDownloaded > _limits.MaxBytes)
+            throw new ExecutionLimitException($"Total downloaded bytes exceeds limit ({_limits.MaxBytes})");
     }
 
     public void SetVariable(string name, object? value) => Variables[name] = value;
