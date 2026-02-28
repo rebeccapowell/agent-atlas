@@ -6,7 +6,7 @@ on:
     branches: [preview]
     paths:
       - 'docs/**'
-      - '.github/workflows/squad-docs.yml'
+      - '.github/workflows/docs.yml'
 
 permissions:
   contents: read
