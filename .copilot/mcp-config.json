@@ -12,16 +12,11 @@
       },
       "tools": ["*"]
     },
-    "EXAMPLE-trello": {
+    "playwright": {
       "command": "npx",
       "args": [
-        "-y",
-        "@trello/mcp-server"
-      ],
-      "env": {
-        "TRELLO_API_KEY": "${TRELLO_API_KEY}",
-        "TRELLO_TOKEN": "${TRELLO_TOKEN}"
-      }
+        "@playwright/mcp"
+      ]
     }
   }
 }

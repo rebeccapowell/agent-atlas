@@ -33,20 +33,37 @@ helm/                    # Kubernetes / Helm chart
 - **YamlDotNet** (catalog YAML parsing)
 - **Microsoft.OpenApi.Readers** (OpenAPI spec loading)
 
-## Build
+## Build and Run
 
 ```bash
 # Build entire solution
 dotnet build src/Atlas.AppHost/Atlas.AppHost.csproj
 
-# Run with full Aspire stack (requires Docker for Keycloak)
-dotnet run --project src/Atlas.AppHost
+# Run with Aspire (preferred — starts all services with Keycloak, MCP Inspector, OTel)
+aspire run --project src/Atlas.AppHost
 
 # Run without Docker (StubIdp fallback)
 Atlas__CatalogPath=$(pwd)/catalog \
 Atlas__Oidc__Issuer=http://localhost:5200 \
-dotnet run --project src/Atlas.Host
+aspire run --project src/Atlas.Host
 ```
+
+> **Prefer `aspire run` over `dotnet run`** when starting any project.
+> The Aspire CLI wires service discovery, injects environment variables, and makes
+> OTel data visible through the Aspire dashboard and the Aspire MCP server.
+
+## MCP Tools Available to the Coding Agent
+
+Two MCP servers are configured in `.copilot/mcp-config.json`:
+
+| Server | Command | Capabilities |
+|--------|---------|--------------|
+| **aspire** | `aspire agent mcp` | Read OTel traces/logs/metrics, list running resources, get resource URLs, inspect structured application data from the running Aspire application |
+| **playwright** | `npx @playwright/mcp` | Navigate and interact with the running React UI in a browser — useful for verifying UI changes and end-to-end behaviour |
+
+Use the **aspire** MCP server to inspect OTel telemetry and resource URLs instead of
+reading log files directly. Use the **playwright** MCP server to navigate the Atlas UI
+at the URL provided by the Aspire dashboard.
 
 ## Testing
 

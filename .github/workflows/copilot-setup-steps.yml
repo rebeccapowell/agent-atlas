@@ -1,0 +1,61 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy validation,
+# and allow manual testing through the repository's "Actions" tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── .NET 10 ──────────────────────────────────────────────────────────────
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # ── Aspire CLI ───────────────────────────────────────────────────────────
+      # Required to run the Aspire application host and to start the Aspire MCP
+      # server (`aspire agent mcp`) that gives Copilot access to OTel traces,
+      # logs, resource URLs, and structured application data.
+      - name: Install Aspire CLI
+        run: dotnet tool install --global aspire.cli
+
+      # Initialise the Aspire MCP configuration so the agent can connect to
+      # `aspire agent mcp` for OTel and resource data.
+      - name: Initialise Aspire MCP configuration
+        run: aspire mcp init
+
+      # ── Node.js (Playwright MCP) ──────────────────────────────────────────────
+      # Node.js is required to run the Playwright MCP server, which gives
+      # Copilot the ability to navigate and interact with the running React UI.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Pre-install Playwright system dependencies so the MCP server can launch
+      # a browser without network access at session time.
+      - name: Install Playwright browser dependencies
+        run: npx -y playwright install --with-deps chromium
+
+      # ── .NET dependencies ─────────────────────────────────────────────────────
+      # Restore NuGet packages up front so the agent does not need to do so on
+      # first build.
+      - name: Restore .NET dependencies
+        run: dotnet restore src/Atlas.AppHost/Atlas.AppHost.csproj
