@@ -1,5 +1,6 @@
 name: Squad CI
-# dotnet project — configure build/test commands below
+# Fast PR validation — restore, build, and test only.
+# Release artifacts (Docker image) are handled by docker-publish.yml.
 
 on:
   pull_request:
@@ -12,17 +13,23 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and test
-        run: |
-          # TODO: Add your dotnet build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-ci.yml"
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore AgentAtlas.slnx
+
+      - name: Build
+        run: dotnet build AgentAtlas.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test src/Atlas.Host.Tests/Atlas.Host.Tests.csproj --no-build --configuration Release --verbosity normal

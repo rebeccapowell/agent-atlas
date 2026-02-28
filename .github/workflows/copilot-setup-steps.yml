@@ -31,16 +31,34 @@ jobs:
 
       # ── Aspire CLI ───────────────────────────────────────────────────────────
       # Required to run the Aspire application host and to start the Aspire MCP
-      # server (`aspire agent mcp`) that gives Copilot access to OTel traces,
+      # server (`aspire mcp start`) that gives Copilot access to OTel traces,
       # logs, resource URLs, and structured application data.
       - name: Install Aspire CLI
         run: dotnet tool install --global aspire.cli
 
-      # Note: `aspire mcp init` is intentionally omitted here. The MCP server
-      # configuration is already committed to .copilot/mcp-config.json in the
-      # repository and `aspire mcp init` cannot run non-interactively in GitHub
-      # Actions (aspire CLI v13.x always prompts for workspace root even with
-      # --non-interactive when a CI environment is detected).
+      # Note: `aspire agent init` is the correct non-interactive command for initializing the
+      # Aspire MCP configuration in agent/CI environments, and `aspire mcp init` is its legacy
+      # alias. Both are intentionally omitted here because:
+      #
+      # 1. The MCP server configuration (.copilot/mcp-config.json) is already committed to the
+      #    repository, so the init step would be a no-op at best and would overwrite the
+      #    hand-tuned config at worst.
+      #
+      # 2. The `aspire agent` command namespace (aspire agent mcp, aspire agent init) exists
+      #    only in the Aspire CLI main branch and is NOT yet available in the latest published
+      #    NuGet package (13.1.2).  Running `aspire agent init` in the setup steps would fail
+      #    with "Unrecognized command or argument 'agent'" until a newer version ships.
+      #
+      # 3. The older `aspire mcp init --non-interactive` command crashes in 13.1.2 with an
+      #    unhandled InvalidOperationException even when the --non-interactive flag is supplied —
+      #    a known bug in the CLI where it does not return the default value for workspace root
+      #    when running without a TTY.
+      #
+      # When a version of aspire.cli is published that fixes the non-interactive prompt bug,
+      # the step below can be uncommented to auto-generate / refresh the agent config:
+      #
+      # - name: Initialise Aspire agent configuration
+      #   run: aspire agent init --non-interactive
 
       # ── Node.js (Playwright MCP) ──────────────────────────────────────────────
       # Node.js is required to run the Playwright MCP server, which gives
