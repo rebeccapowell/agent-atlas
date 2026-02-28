@@ -21,7 +21,7 @@ var atlasHost = builder.AddProject<Projects.Atlas_Host>("atlas-host")
     .WithEnvironment("Atlas__CatalogPath", catalogPath)
     .WithEnvironment("Atlas__PlatformPermissions__Claim", "scope")
     .WithEnvironment("Atlas__Oidc__Issuer",
-        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/atlas"))
+        ReferenceExpression.Create($"{keycloak.GetEndpoint("https")}/realms/atlas"))
     .WaitFor(keycloak);
 
 // MCP Inspector – local dev tool for exploring and debugging the Atlas MCP server at /mcp
