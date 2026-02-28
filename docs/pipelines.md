@@ -28,15 +28,15 @@ The pipelines cover four concerns:
 
 | Concern | Workflow file |
 |---|---|
-| Build, test, coverage on PRs and dev/insider pushes | `ci.yml` |
-| Stable release — tag + GitHub release | `release.yml` |
-| Insider pre-release — timestamped tag | `insider-release.yml` |
-| Preview validation before final release | `preview.yml` |
+| Build, test, coverage on PRs and dev/insider pushes | `squad-ci.yml` |
+| Stable release — tag + GitHub release | `squad-release.yml` |
+| Insider pre-release — timestamped tag | `squad-insider-release.yml` |
+| Preview validation before final release | `squad-preview.yml` |
 | Docker image publish to ghcr.io | `docker-publish.yml` |
-| Branch promotion (dev → preview → main) | `promote.yml` |
-| Docs site build & deploy | `docs.yml` |
+| Branch promotion (dev → preview → main) | `squad-promote.yml` |
+| Docs site build & deploy | `squad-docs.yml` |
 
-The issue management workflows (`triage.yml`, `heartbeat.yml`, `issue-assign.yml`, `label-enforce.yml`, `sync-squad-labels.yml`) are driven entirely by `GITHUB_TOKEN` and require no extra configuration.
+The issue management workflows (`squad-triage.yml`, `squad-heartbeat.yml`, `squad-issue-assign.yml`, `squad-label-enforce.yml`, `sync-squad-labels.yml`) are driven entirely by `GITHUB_TOKEN` and require no extra configuration.
 
 ---
 
@@ -61,23 +61,23 @@ Use the **Promote** workflow (`Actions → Promote → Run workflow`) to merge `
 
 ## Workflow summary
 
-### `ci.yml` — CI (pull requests & dev/insider pushes)
+### `squad-ci.yml` — CI (pull requests & dev/insider pushes)
 - Cross-platform matrix: **ubuntu-latest**, **windows-latest**, **macos-latest**
 - Restores, builds, and tests `src/Atlas.Host.Tests`
 - Collects XPlat code coverage (Cobertura XML)
 - Publishes TRX test results as a check via `dorny/test-reporter`
 - Uploads coverage XML as a workflow artifact (7-day retention)
 
-### `release.yml` — Stable release
+### `squad-release.yml` — Stable release
 - Triggered by a push to `main`
 - Builds and tests, then auto-increments the patch segment of the latest `v*.*.*` tag (creates `v0.1.0` if no tag exists)
 - Creates a GitHub release with auto-generated notes
 
-### `insider-release.yml` — Insider pre-release
+### `squad-insider-release.yml` — Insider pre-release
 - Triggered by a push to `insider`
 - Builds and tests, then creates a timestamped pre-release tag: `insider-YYYYMMDDHHMMSS-<sha7>`
 
-### `preview.yml` — Preview validation
+### `squad-preview.yml` — Preview validation
 - Triggered by a push to `preview`
 - Builds and tests; acts as a quality gate before promotion to `main`
 
@@ -91,7 +91,7 @@ Use the **Promote** workflow (`Actions → Promote → Run workflow`) to merge `
   - `latest` — stable releases only (not pre-releases)
   - `sha-<short>` — traceability
 
-### `promote.yml` — Branch promotion
+### `squad-promote.yml` — Branch promotion
 - Manual only (`workflow_dispatch` with optional dry-run mode)
 - Merges `dev → preview` (stripping internal squad/AI-team files), then `preview → main`
 
@@ -110,9 +110,9 @@ All settings live under **Repository → Settings**.
 Set to **Read and write permissions**.
 
 This is required for:
-- `release.yml` and `insider-release.yml` to push tags and create releases
+- `squad-release.yml` and `squad-insider-release.yml` to push tags and create releases
 - `docker-publish.yml` to push images to GitHub Container Registry
-- `promote.yml` to push branch merges
+- `squad-promote.yml` to push branch merges
 
 > **Screenshot reference:** the toggle is labelled _"Read and write permissions"_ under the _"Workflow permissions"_ heading.
 
@@ -154,7 +154,7 @@ This allows the package to inherit the repository's access control and appear on
 
 ### 4. GitHub Pages (optional)
 
-Only needed if you configure `docs.yml` to actually build and deploy a documentation site.
+Only needed if you configure `squad-docs.yml` to actually build and deploy a documentation site.
 
 **Path:** Settings → Pages
 
@@ -163,7 +163,7 @@ Only needed if you configure `docs.yml` to actually build and deploy a documenta
 | Source | **GitHub Actions** |
 | Branch | _(not applicable — source is set to GitHub Actions)_ |
 
-The `docs.yml` workflow currently has a placeholder `echo` command. Update it with your actual documentation build tool (e.g. [DocFX](https://dotnet.github.io/docfx/), [MkDocs](https://www.mkdocs.org/), or plain HTML) before enabling Pages.
+The `squad-docs.yml` workflow currently has a placeholder `echo` command. Update it with your actual documentation build tool (e.g. [DocFX](https://dotnet.github.io/docfx/), [MkDocs](https://www.mkdocs.org/), or plain HTML) before enabling Pages.
 
 ---
 
@@ -194,7 +194,7 @@ Same as `main` but you may relax the direct-push restriction to allow the promot
 | Secret | Required | Where to add | Purpose |
 |---|---|---|---|
 | `GITHUB_TOKEN` | **Automatic** — no setup needed | N/A | Tags, releases, GHCR push, issue management |
-| `COPILOT_ASSIGN_TOKEN` | Optional | Settings → Secrets → Actions → New | PAT for assigning `@copilot` to issues in `heartbeat.yml`. Falls back to `GITHUB_TOKEN` if absent. Needs `repo` and `issues` scopes. |
+| `COPILOT_ASSIGN_TOKEN` | Optional | Settings → Secrets → Actions → New | PAT for assigning `@copilot` to issues in `squad-heartbeat.yml`. Falls back to `GITHUB_TOKEN` if absent. Needs `repo` and `issues` scopes. |
 
 No other secrets are required. All pipelines use the built-in `GITHUB_TOKEN`.
 
@@ -212,15 +212,15 @@ No other secrets are required. All pipelines use the built-in `GITHUB_TOKEN`.
 
 All workflows use `.NET 10.0.x` with `dotnet-quality: preview`.
 
-.NET 10 is currently in preview. When it reaches GA, remove the `dotnet-quality: preview` line from all four workflow files (`ci.yml`, `release.yml`, `insider-release.yml`, `preview.yml`).
+.NET 10 is currently in preview. When it reaches GA, remove the `dotnet-quality: preview` line from all four workflow files (`squad-ci.yml`, `squad-release.yml`, `squad-insider-release.yml`, `squad-preview.yml`).
 
 Files to update:
 
 ```
-.github/workflows/ci.yml
-.github/workflows/release.yml
-.github/workflows/insider-release.yml
-.github/workflows/preview.yml
+.github/workflows/squad-ci.yml
+.github/workflows/squad-release.yml
+.github/workflows/squad-insider-release.yml
+.github/workflows/squad-preview.yml
 ```
 
 In each, change:
@@ -236,7 +236,7 @@ In each, change:
 
 ## First release — bootstrapping
 
-The `release.yml` workflow auto-increments the latest semver tag. On a fresh repository with no tags, it starts at `v0.1.0`. To start at a different version, create the tag manually before merging to `main` for the first time:
+The `squad-release.yml` workflow auto-increments the latest semver tag. On a fresh repository with no tags, it starts at `v0.1.0`. To start at a different version, create the tag manually before merging to `main` for the first time:
 
 ```bash
 git tag v1.0.0
@@ -259,13 +259,13 @@ This is the same workflow-permissions issue. Set permissions to **Read and write
 
 ### `dorny/test-reporter` check does not appear
 
-`ci.yml` requires `checks: write` permission (already declared in the workflow). If the check still doesn't appear, confirm that the forked PR originates from the same repository — external fork PRs have restricted token permissions by design.
+`squad-ci.yml` requires `checks: write` permission (already declared in the workflow). If the check still doesn't appear, confirm that the forked PR originates from the same repository — external fork PRs have restricted token permissions by design.
 
 ### Promote workflow fails on version detection
 
-The `promote.yml` workflow previously used `node -e "require('./package.json').version"` inherited from the squad template. This has been fixed — it now reads the latest semver git tag instead. No action required.
+The `squad-promote.yml` workflow previously used `node -e "require('./package.json').version"` inherited from the squad template. This has been fixed — it now reads the latest semver git tag instead. No action required.
 
-### `insider-release.yml` creates too many pre-release tags
+### `squad-insider-release.yml` creates too many pre-release tags
 
 Tags are created on every push to `insider`. To reduce noise, add a path filter to the trigger:
 
