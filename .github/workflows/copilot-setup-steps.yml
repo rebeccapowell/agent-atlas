@@ -36,10 +36,11 @@ jobs:
       - name: Install Aspire CLI
         run: dotnet tool install --global aspire.cli
 
-      # Initialise the Aspire MCP configuration so the agent can connect to
-      # `aspire agent mcp` for OTel and resource data.
-      - name: Initialise Aspire MCP configuration
-        run: aspire mcp init
+      # Note: `aspire mcp init` is intentionally omitted here. The MCP server
+      # configuration is already committed to .copilot/mcp-config.json in the
+      # repository and `aspire mcp init` cannot run non-interactively in GitHub
+      # Actions (aspire CLI v13.x always prompts for workspace root even with
+      # --non-interactive when a CI environment is detected).
 
       # ── Node.js (Playwright MCP) ──────────────────────────────────────────────
       # Node.js is required to run the Playwright MCP server, which gives
