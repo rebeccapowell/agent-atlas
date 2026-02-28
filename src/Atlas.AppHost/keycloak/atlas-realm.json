@@ -112,6 +112,42 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "mcp-inspector",
+      "name": "MCP Inspector",
+      "description": "Public PKCE client for MCP Inspector guided OAuth2 authentication",
+      "enabled": true,
+      "publicClient": true,
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["http://localhost:6274/*", "http://localhost:*/*"],
+      "webOrigins": ["http://localhost:6274", "http://localhost:*"],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "platform-code-mode:search",
+        "platform-code-mode:execute",
+        "someapi:customers:read"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "atlas-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "included.custom.audience": "api://agent-atlas"
+          }
+        }
+      ]
     }
   ]
 }

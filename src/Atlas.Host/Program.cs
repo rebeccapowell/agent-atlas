@@ -5,6 +5,8 @@ using Atlas.Host.Mcp;
 using Atlas.Host.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using ModelContextProtocol.AspNetCore.Authentication;
+using ModelContextProtocol.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,22 @@ if (!string.IsNullOrEmpty(atlasOpts.Oidc.Issuer))
                 ClockSkew = TimeSpan.FromSeconds(30),
             };
             options.RequireHttpsMetadata = !atlasOpts.Oidc.Issuer.StartsWith("http://");
+            // Forward 401 challenges to the MCP auth scheme so it can emit the
+            // WWW-Authenticate: Bearer resource_metadata="..." header that MCP Inspector
+            // uses for its guided/auto-discovery OAuth2 PKCE flow.
+            options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme;
+        })
+        .AddMcp(options =>
+        {
+            // Forward actual token validation back to JwtBearer.
+            options.ForwardAuthenticate = JwtBearerDefaults.AuthenticationScheme;
+            // Advertise the Keycloak realm as the authorization server so MCP Inspector
+            // can auto-discover the token/authorization endpoints via
+            // {issuer}/.well-known/openid-configuration.
+            options.ResourceMetadata = new ProtectedResourceMetadata
+            {
+                AuthorizationServers = [atlasOpts.Oidc.Issuer],
+            };
         });
 }
 else
