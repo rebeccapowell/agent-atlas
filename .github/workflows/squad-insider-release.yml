@@ -1,5 +1,4 @@
-name: Squad Insider Release
-# Project type was not detected — configure build, test, and insider release commands below
+name: Insider Release
 
 on:
   push:
@@ -9,26 +8,45 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  insider-release:
+    name: Build, Test & Pre-release
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Build and test
-        run: |
-          # TODO: Project type was not detected — add your build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-insider-release.yml"
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: preview
 
-      - name: Create insider release
+      - name: Restore dependencies
+        run: dotnet restore src/Atlas.Host.Tests/Atlas.Host.Tests.csproj
+
+      - name: Build
+        run: dotnet build src/Atlas.Host.Tests/Atlas.Host.Tests.csproj --no-restore -c Release
+
+      - name: Test
+        run: >
+          dotnet test src/Atlas.Host.Tests/Atlas.Host.Tests.csproj
+          --no-build -c Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+          --collect:"XPlat Code Coverage"
+
+      - name: Create insider pre-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # TODO: Add your insider/pre-release commands here
-          echo "No release commands configured — update squad-insider-release.yml"
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG="insider-${TIMESTAMP}-${SHORT_SHA}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "Insider Build $TAG" \
+            --generate-notes \
+            --prerelease

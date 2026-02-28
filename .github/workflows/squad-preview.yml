@@ -1,5 +1,4 @@
-name: Squad Preview Validation
-# Project type was not detected — configure build, test, and validation commands below
+name: Preview Validation
 
 on:
   push:
@@ -10,21 +9,28 @@ permissions:
 
 jobs:
   validate:
+    name: Build & Test (preview)
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and test
-        run: |
-          # TODO: Project type was not detected — add your build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-preview.yml"
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: preview
 
-      - name: Validate
-        run: |
-          # TODO: Add pre-release validation commands here
-          echo "No validation commands configured — update squad-preview.yml"
+      - name: Restore dependencies
+        run: dotnet restore src/Atlas.Host.Tests/Atlas.Host.Tests.csproj
+
+      - name: Build
+        run: dotnet build src/Atlas.Host.Tests/Atlas.Host.Tests.csproj --no-restore -c Release
+
+      - name: Test
+        run: >
+          dotnet test src/Atlas.Host.Tests/Atlas.Host.Tests.csproj
+          --no-build -c Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+          --collect:"XPlat Code Coverage"

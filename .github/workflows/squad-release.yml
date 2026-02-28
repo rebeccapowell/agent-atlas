@@ -1,5 +1,4 @@
-name: Squad Release
-# Project type was not detected — configure build, test, and release commands below
+name: Release
 
 on:
   push:
@@ -10,25 +9,60 @@ permissions:
 
 jobs:
   release:
+    name: Build, Test & Release
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Build and test
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: preview
+
+      - name: Restore dependencies
+        run: dotnet restore src/Atlas.Host.Tests/Atlas.Host.Tests.csproj
+
+      - name: Build
+        run: dotnet build src/Atlas.Host.Tests/Atlas.Host.Tests.csproj --no-restore -c Release
+
+      - name: Test
+        run: >
+          dotnet test src/Atlas.Host.Tests/Atlas.Host.Tests.csproj
+          --no-build -c Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+          --collect:"XPlat Code Coverage"
+
+      - name: Determine version
+        id: version
         run: |
-          # TODO: Project type was not detected — add your build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-release.yml"
+          # Use latest semver tag or fall back to 0.1.0
+          LATEST=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -1)
+          if [ -z "$LATEST" ]; then
+            VERSION="0.1.0"
+          else
+            VERSION="${LATEST#v}"
+            # Bump patch by default for main pushes
+            IFS='.' read -r major minor patch <<< "$VERSION"
+            patch=$((patch + 1))
+            VERSION="${major}.${minor}.${patch}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # TODO: Add your release commands here (e.g., git tag, gh release create)
-          echo "No release commands configured — update squad-release.yml"
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "Release $TAG" \
+            --generate-notes \
+            --latest
