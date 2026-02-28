@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files
-COPY AgentAtlas.sln .
+COPY AgentAtlas.slnx .
 COPY src/Atlas.Host/Atlas.Host.csproj src/Atlas.Host/
 
 # Restore
