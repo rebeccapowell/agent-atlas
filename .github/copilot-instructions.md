@@ -63,7 +63,65 @@ aspire run --project src/Atlas.Host
 > The Aspire CLI wires service discovery, injects environment variables, and makes
 > OTel data visible through the Aspire dashboard and the Aspire MCP server.
 
+## Running Atlas.Host for Screenshots (Agent / CI Environments)
+
+In the GitHub Copilot agent sandbox (and any headless CI context) the full Aspire
+AppHost requires Docker for Keycloak and MCP Inspector images, which may not be
+available or may take too long to pull. For screenshot and UI documentation tasks,
+**run Atlas.Host directly** — no Docker, no Keycloak, no OIDC required:
+
+```bash
+# Build Atlas.Host if not already done
+dotnet build src/Atlas.Host/Atlas.Host.csproj --no-restore
+
+# Start Atlas.Host standalone — UI ready at http://localhost:5063 within ~3 s
+Atlas__CatalogPath=$(pwd)/catalog \
+Atlas__Mcp__AllowAnonymous=true \
+dotnet run --project src/Atlas.Host --no-build &
+APP_PID=$!
+
+sleep 4
+curl -sf http://localhost:5063/healthz   # should return "Healthy"
+
+# Use the Playwright MCP to take screenshots, then stop the app:
+# kill $APP_PID
+```
+
+### Why this works in the agent environment
+
+| Fact | Detail |
+|------|--------|
+| `Atlas__CatalogPath=$(pwd)/catalog` | Uses the bundled sample catalog already in the repo |
+| `Atlas__Mcp__AllowAnonymous=true` | Bypasses all OIDC auth — no Keycloak token needed |
+| `dotnet run` reads `launchSettings.json` | The `http` profile specifies `applicationUrl: http://localhost:5063`. When using `dotnet run`, launchSettings.json takes precedence over `ASPNETCORE_URLS` — do not rely on the env var |
+| React UI pre-built in `wwwroot/` | Served as static files; no Node.js build step needed |
+| `/v1/apis` and `/v1/tools` are `AllowAnonymous` | The UI loads tool/API data without any Bearer token |
+
+### Screenshot targets
+
+After the app is running, use the **Playwright MCP** to capture:
+
+| File | Page | Mode |
+|------|------|------|
+| `docs/screenshots/01-tools-list-light.png` | Tools tab | Light |
+| `docs/screenshots/02-tool-detail-light.png` | Tools tab — detail panel open | Light |
+| `docs/screenshots/03-apis-list-light.png` | APIs tab | Light |
+| `docs/screenshots/04-tools-list-dark.png` | Tools tab | Dark |
+| `docs/screenshots/05-apis-list-dark.png` | APIs tab | Dark |
+| `docs/screenshots/06-tool-detail-dark.png` | Tools tab — detail panel open | Dark |
+| `docs/screenshots/07-use-mcp-light.png` | Use MCP tab | Light |
+| `docs/screenshots/07-use-mcp-dark.png` | Use MCP tab | Dark |
+| `docs/screenshots/08-about-dark.png` | About tab | Dark |
+
+Toggle dark mode with the moon/sun icon in the navigation bar.
+
+---
+
 ## Waiting for Aspire Resources to Start
+
+> **This section applies when running the full AppHost stack with Docker.**
+> For screenshot tasks in agent/CI environments prefer the Atlas.Host standalone
+> approach above — it starts in seconds and needs no Docker.
 
 Aspire starts several services that may take time to become ready, especially on first run
 when Docker images for Keycloak and MCP Inspector must be pulled.

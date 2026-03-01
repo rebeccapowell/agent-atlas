@@ -1,6 +1,6 @@
 ---
 title: CI/CD Pipelines
-nav_order: 6
+nav_order: 7
 ---
 
 # CI/CD Pipeline Setup Guide
@@ -40,6 +40,7 @@ The pipelines cover four concerns:
 | Docker image publish to ghcr.io | `docker-publish.yml` |
 | Branch promotion (dev → preview → main) | `squad-promote.yml` |
 | Docs site build & deploy | `squad-docs.yml` |
+| Copilot agent environment setup | `copilot-setup-steps.yml` |
 
 The issue management workflows (`squad-triage.yml`, `squad-heartbeat.yml`, `squad-issue-assign.yml`, `squad-label-enforce.yml`, `sync-squad-labels.yml`) are driven entirely by `GITHUB_TOKEN` and require no extra configuration.
 
@@ -107,6 +108,24 @@ Use the **Promote** workflow (`Actions → Promote → Run workflow`) to merge `
 - Uploads the built site as a GitHub Pages artifact and deploys it via `actions/deploy-pages@v4`
 - Requires **Settings → Pages → Source → GitHub Actions** to be enabled (see [step 4](#4-github-pages-optional))
 - Only one deployment runs at a time; in-progress deployments are never cancelled
+
+### `copilot-setup-steps.yml` — Copilot agent environment setup
+- Triggered on `push` or `pull_request` when the workflow file itself changes, and via `workflow_dispatch`
+- The job **must** be named `copilot-setup-steps`; GitHub uses that name to discover the setup manifest for the Copilot coding agent
+- Prepares a reproducible Ubuntu environment so the agent can build, run, and inspect the application without additional bootstrap time per session
+- Steps, in order:
+  1. **Check out repository** — full checkout so the agent has all source files
+  2. **Set up .NET SDK** (`actions/setup-dotnet@v4`) — installs .NET `10.0.x`
+  3. **Cache NuGet packages** (`actions/cache@v4`) — keyed on all `*.csproj`, `*.props`, `*.targets`, `global.json`, and `NuGet.config` fingerprints; significantly reduces repeated restore times
+  4. **Install Aspire CLI** — uses the official installer script at `https://aspire.dev/install.sh` (preferred over `dotnet tool install` because it sets up PATH and native dependencies correctly); adds `~/.aspire/bin` to `GITHUB_PATH`
+  5. **Verify Aspire CLI installation** — runs `aspire --version` to catch install failures early
+  6. **Prepare local HTTPS development certificate** — runs `dotnet dev-certs https --clean`, `dotnet dev-certs https`, and `dotnet dev-certs https --trust || true`; the `|| true` is intentional: on headless Linux runners `--trust` exits with code 4 when it cannot register with NSS/browser trust stores, but the cert is still trusted for .NET clients, which is all Aspire's DCP process manager requires
+  7. **Set up Node.js** (`actions/setup-node@v4`) — installs Node.js 20 for the Playwright MCP server
+  8. **Install Playwright browsers** — runs `npx --yes playwright install --with-deps chromium` so the Playwright MCP server can open a browser without network access at session time
+  9. **Restore solution dependencies** — runs `dotnet restore AgentAtlas.slnx` to pre-warm the NuGet cache for all projects
+  10. **Print useful repo hints** — echoes startup hints (AppHost project path, preferred `aspire run` command) as a breadcrumb for the agent and for humans debugging setup
+
+> **Note on Aspire CLI version:** `aspire agent init` and `aspire agent mcp` sub-commands exist only in the Aspire CLI main branch and are not yet available in the published package. The `aspire mcp init --non-interactive` command also crashes in 13.1.x due to a known bug. These steps are intentionally omitted; the committed `.copilot/mcp-config.json` file already contains the correct MCP server configuration.
 
 ---
 

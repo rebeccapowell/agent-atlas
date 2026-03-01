@@ -1,6 +1,6 @@
 ---
 title: Configuration Guide
-nav_order: 7
+nav_order: 8
 ---
 
 # Configuration Steps for GitHub Pages & Agentic Documentation
@@ -139,59 +139,95 @@ For more information see:
 
 ---
 
-## 4. Taking screenshots with Aspire MCP and Playwright MCP
+## 4. Taking screenshots in the Copilot agent environment
 
-When Copilot runs as the documentation agent, it can capture live screenshots of the
-running application and embed them in the docs or the repository README. This requires
-the **Aspire MCP server** and the **Playwright MCP server** to be active.
+When Copilot runs as the documentation agent it can capture live screenshots of the
+running application and embed them in the docs or the repository README. The approach
+that works reliably in the GitHub Copilot agent sandbox (and any headless CI context)
+is to **run Atlas.Host directly** — no Docker, no Keycloak, no Aspire AppHost needed.
 
-### How it works
-
-```
-aspire mcp start          ← exposes OTel data, resource URLs, and structured app state
-npx @playwright/mcp       ← allows the agent to navigate and screenshot the Atlas UI
-```
-
-Copilot (or any coding agent) connects to both servers and can:
-
-1. Use the Aspire MCP to discover the URL of the running `atlas-host` resource.
-2. Use the Playwright MCP to navigate to the Atlas UI at that URL.
-3. Capture screenshots of the tools list, tool detail, APIs list, dark/light modes, etc.
-4. Embed those screenshots into `docs/` pages or the repository `README.md`.
-
-### Usage in non-interactive / CI mode
-
-> **Note:** In Aspire CLI 13.1.2, start the MCP server with `aspire mcp start`. The
-> `aspire agent mcp` command is not yet available in the published NuGet package
-> (it is in the main branch only).
+### Exact commands used (verified in the Copilot agent environment)
 
 ```bash
-# Terminal 1 — start the Aspire application
+# 1. Build Atlas.Host (skip if already done in copilot-setup-steps)
+dotnet build src/Atlas.Host/Atlas.Host.csproj --no-restore
+
+# 2. Start Atlas.Host standalone in the background
+Atlas__CatalogPath=$(pwd)/catalog \
+Atlas__Mcp__AllowAnonymous=true \
+dotnet run --project src/Atlas.Host --no-build &
+APP_PID=$!
+
+# 3. Wait for the app to start (~3–4 seconds)
+sleep 4
+curl -sf http://localhost:5063/healthz   # → "Healthy"
+
+# 4. Use the Playwright MCP to navigate and take screenshots
+#    Navigate to: http://localhost:5063
+
+# 5. Stop the app when done
+# kill $APP_PID
+```
+
+### Why this works — key facts
+
+| Fact | Detail |
+|------|--------|
+| Port 5063 | `dotnet run` reads `src/Atlas.Host/Properties/launchSettings.json`. The `http` profile sets `applicationUrl: http://localhost:5063`. When using `dotnet run`, launchSettings.json takes precedence over `ASPNETCORE_URLS` — always use port 5063. |
+| `Atlas__CatalogPath=$(pwd)/catalog` | Points to the bundled sample catalog already in the repository root. |
+| `Atlas__Mcp__AllowAnonymous=true` | Bypasses all OIDC/JWT authentication. No Keycloak token, no StubIdp, no OIDC issuer configured. |
+| No OIDC issuer | `Program.cs` skips the entire JWT middleware when `Atlas__Oidc__Issuer` is empty. |
+| React UI | Pre-built into `src/Atlas.Host/wwwroot/` — no Node.js build step needed. |
+| Catalog REST API | `/v1/apis` and `/v1/tools` are `AllowAnonymous` — the UI loads data without any Bearer token. |
+
+### Why the full Aspire AppHost does not work in agent/CI environments
+
+The full stack (`aspire run --project src/Atlas.AppHost`) requires Docker to pull the
+Keycloak and MCP Inspector images. In the Copilot agent sandbox these images either
+are not available or take too long to pull, causing the `atlas-host` resource to remain
+in a `Waiting` state rather than `Running`. The Atlas.Host standalone approach sidesteps
+all of this.
+
+### Screenshot targets
+
+After starting Atlas.Host, use the **Playwright MCP** to navigate to `http://localhost:5063`
+and capture the following screenshots:
+
+| File | Page | Mode |
+|------|------|------|
+| `docs/screenshots/01-tools-list-light.png` | Tools tab | Light |
+| `docs/screenshots/02-tool-detail-light.png` | Tools tab — detail panel open | Light |
+| `docs/screenshots/03-apis-list-light.png` | APIs tab | Light |
+| `docs/screenshots/04-tools-list-dark.png` | Tools tab | Dark |
+| `docs/screenshots/05-apis-list-dark.png` | APIs tab | Dark |
+| `docs/screenshots/06-tool-detail-dark.png` | Tools tab — detail panel open | Dark |
+| `docs/screenshots/07-use-mcp-light.png` | Use MCP tab | Light |
+| `docs/screenshots/07-use-mcp-dark.png` | Use MCP tab | Dark |
+| `docs/screenshots/08-about-dark.png` | About tab | Dark |
+
+Toggle dark/light mode with the moon/sun icon in the top-right of the navigation bar.
+
+After saving screenshots, update `docs/walkthrough.md`, `docs/index.md`, and `README.md`
+to reference them.
+
+### Full-stack screenshots (when Docker is available)
+
+If you are running locally with Docker available, the full Aspire AppHost provides a
+richer environment (Keycloak, MCP Inspector, OTel). In that case:
+
+```bash
+# Terminal 1 — start the full stack
 aspire run --project src/Atlas.AppHost
 
 # Terminal 2 — start the Aspire MCP server (exposes OTel/resource data to the agent)
 aspire mcp start
-
-# The Playwright MCP server is started on demand by the agent via npx:
-# npx @playwright/mcp@latest
 ```
 
-Configuration for both MCP servers is already committed to the repository:
+Use the **Aspire MCP** (`aspire mcp start`) to discover the URL of the running
+`atlas-host` resource, then use the **Playwright MCP** to navigate and capture
+screenshots. MCP server configuration is committed at:
 - `.copilot/mcp-config.json` — shared team config (Aspire MCP + Playwright MCP)
 - `.vscode/mcp.json` — VS Code workspace config
-
-### Instructing Copilot to take screenshots
-
-When filing a documentation update issue or editing the `update-docs.md` workflow
-instructions, include a task like:
-
-```
-- [ ] Use the Aspire MCP to get the atlas-host URL.
-- [ ] Use the Playwright MCP to navigate to the Atlas UI.
-- [ ] Take a screenshot of the tools list (light mode) and save to docs/screenshots/.
-- [ ] Take a screenshot of the tool detail panel and save to docs/screenshots/.
-- [ ] Update docs/index.md to reference the new screenshots.
-```
 
 ---
 

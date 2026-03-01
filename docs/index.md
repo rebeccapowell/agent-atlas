@@ -25,7 +25,12 @@ Agent Atlas is an enterprise **MCP (Model Context Protocol) gateway** built with
 ## Quick start
 
 ```bash
-# Run with Aspire (starts all services including Keycloak)
+# 1. Trust the HTTPS development certificate (required once per environment)
+dotnet dev-certs https --clean
+dotnet dev-certs https
+dotnet dev-certs https --trust
+
+# 2. Run with Aspire (starts all services including Keycloak)
 aspire run --project src/Atlas.AppHost
 
 # Run without Docker (StubIdp fallback)
@@ -33,6 +38,10 @@ Atlas__CatalogPath=$(pwd)/catalog \
 Atlas__Oidc__Issuer=http://localhost:5200 \
 aspire run --project src/Atlas.Host
 ```
+
+> **Note:** Aspire uses a local HTTPS certificate for service-to-service communication via its internal DCP process manager. Without a trusted certificate the AppHost times out after 20 seconds. On Linux, `dotnet dev-certs https --trust` may exit with code 4 when it cannot register with browser trust stores — this is non-fatal; the certificate is still trusted for .NET clients.
+
+> **Note:** On first run, Docker pulls the Keycloak and MCP Inspector images. `atlas-host` will show as **Running** in the Aspire dashboard only after Keycloak has finished starting (allow 2–5 minutes).
 
 ---
 
@@ -43,6 +52,7 @@ Browse the full documentation using the navigation on the left (or above on mobi
 
 | Page | Description |
 |---|---|
+| [UI Walkthrough](walkthrough) | Screenshots and tour of the Tools, APIs, Use MCP, and About pages |
 | [Security Model](security-model) | Two-layer auth model — platform permissions + downstream API auth |
 | [GitOps Data Plane](gitops-data-plane) | Catalog repo structure and `x-mcp` extension reference |
 | [Deploy with Docker](deploy-docker) | Docker deployment guide including published image details |

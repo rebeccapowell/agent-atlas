@@ -181,17 +181,17 @@ It enables consistent agent experiences across domains, shared patterns for tool
 
 The read-only UI is the **capability map** for your organisation — a single place for developers, operators, and AI agents to discover what tools are available, who owns them, and what access is required.
 
-**Tools list (light mode)** — browse all registered tools with safety tier, method/path, and tags at a glance:
+**Tools list** — browse all registered tools with safety tier, method/path, and tags at a glance:
 
-![Agent Atlas — tools list (light mode)](https://github.com/user-attachments/assets/8871c0d7-64a1-4c34-9031-bf7d14b53c54)
+| Light | Dark |
+|-------|------|
+| ![Tools list light](docs/screenshots/01-tools-list-light.png) | ![Tools list dark](docs/screenshots/04-tools-list-dark.png) |
 
 **Tool detail** — click any tool to see the full metadata including description, required permissions, and the entitlement hint that tells users exactly how to request access:
 
-![Agent Atlas — tool detail panel](https://github.com/user-attachments/assets/3e49dc4c-2b06-40f1-9419-ef19898d5470)
-
-**Dark mode** — all views support light and dark themes:
-
-![Agent Atlas — tools list (dark mode)](docs/screenshots/04-tools-list-dark.png)
+| Light | Dark |
+|-------|------|
+| ![Tool detail light](docs/screenshots/02-tool-detail-light.png) | ![Tool detail dark](docs/screenshots/06-tool-detail-dark.png) |
 
 **APIs list** — all registered APIs with owner, tool count, and API ID:
 
@@ -199,9 +199,11 @@ The read-only UI is the **capability map** for your organisation — a single pl
 |-------|------|
 | ![APIs list light](docs/screenshots/03-apis-list-light.png) | ![APIs list dark](docs/screenshots/05-apis-list-dark.png) |
 
-**Tool detail (dark mode)**:
+**Use MCP** — one-click setup snippets for VS Code, Cursor, Claude Desktop, Claude Code, Windsurf, and M365 Copilot:
 
-![Agent Atlas — tool detail (dark mode)](docs/screenshots/06-tool-detail-dark.png)
+| Light | Dark |
+|-------|------|
+| ![Use MCP light](docs/screenshots/07-use-mcp-light.png) | ![Use MCP dark](docs/screenshots/07-use-mcp-dark.png) |
 
 ---
 
