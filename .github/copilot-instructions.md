@@ -35,11 +35,22 @@ helm/                    # Kubernetes / Helm chart
 
 ## Build and Run
 
+> **IMPORTANT — trust the HTTPS dev certificate first.**
+> Aspire uses a local HTTPS certificate for service-to-service communication via DCP
+> (its internal process manager). If the certificate is not trusted, the DCP handshake
+> times out after 20 seconds and the AppHost fails to start. Always run the three cert
+> commands below once before the first `aspire run` in any new environment.
+
 ```bash
-# Build entire solution
+# 1. Trust the HTTPS development certificate (required once per environment)
+dotnet dev-certs https --clean
+dotnet dev-certs https
+dotnet dev-certs https --trust
+
+# 2. Build entire solution
 dotnet build src/Atlas.AppHost/Atlas.AppHost.csproj
 
-# Run with Aspire (preferred — starts all services with Keycloak, MCP Inspector, OTel)
+# 3. Run with Aspire (preferred — starts all services with Keycloak, MCP Inspector, OTel)
 aspire run --project src/Atlas.AppHost
 
 # Run without Docker (StubIdp fallback)
@@ -51,6 +62,30 @@ aspire run --project src/Atlas.Host
 > **Prefer `aspire run` over `dotnet run`** when starting any project.
 > The Aspire CLI wires service discovery, injects environment variables, and makes
 > OTel data visible through the Aspire dashboard and the Aspire MCP server.
+
+## Waiting for Aspire Resources to Start
+
+Aspire starts several services that may take time to become ready, especially on first run
+when Docker images for Keycloak and MCP Inspector must be pulled.
+
+**Always use the `aspire` MCP server to verify resource readiness before navigating.**
+Do not use Playwright to open any URL until the relevant resource shows `Running` state.
+
+```
+# Typical startup sequence (poll with aspire MCP until all show "Running"):
+#   keycloak          — pulls quay.io/keycloak image; may take 2–5 min on first run
+#   sample-api-tool-enabled
+#   sample-api-not-tool-enabled
+#   atlas-host        — waits for keycloak; starts last
+#   mcp-inspector     — pulls ghcr.io mcp-inspector image
+```
+
+Workflow for tasks that need a running application:
+1. Start Aspire in the background: `aspire run --project src/Atlas.AppHost`
+2. Poll the **aspire MCP** `getResources` (or equivalent) tool repeatedly — wait until
+   `atlas-host` **and** `mcp-inspector` both report `Running` before proceeding.
+3. Use the **aspire MCP** to retrieve the URL for each resource (endpoints vary per run).
+4. Only then use the **playwright MCP** to navigate and interact with the UI.
 
 ## MCP Tools Available to the Coding Agent
 

@@ -306,10 +306,12 @@ Supported step types: `call`, `foreach`, `if`, `return`. The engine enforces con
 ### Run with Aspire
 
 ```bash
-dotnet run --project src/Atlas.AppHost
+aspire run --project src/Atlas.AppHost
 ```
 
 The Aspire dashboard opens automatically at **http://localhost:15000** (or https://localhost:17001). Keycloak starts on a random port, the `atlas` realm is imported automatically, and Atlas.Host waits for Keycloak to be ready.
+
+> **Note:** On first run, Docker will pull the Keycloak and MCP Inspector images. This can take several minutes depending on your connection speed. Watch the Aspire dashboard — Atlas.Host will show as **Running** only after Keycloak has finished starting.
 
 > **Note:** Docker Desktop must be running — Keycloak is launched as a container. If you don't have Docker, use the StubIdp fallback below.
 
