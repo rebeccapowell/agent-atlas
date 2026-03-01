@@ -153,8 +153,8 @@ is to **run Atlas.Host directly** — no Docker, no Keycloak, no Aspire AppHost 
 dotnet build src/Atlas.Host/Atlas.Host.csproj --no-restore
 
 # 2. Start Atlas.Host standalone in the background
+# Omitting Atlas__Oidc__Issuer disables JWT auth — the React UI loads fine without a token.
 Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Mcp__AllowAnonymous=true \
 dotnet run --project src/Atlas.Host --no-build &
 APP_PID=$!
 
@@ -175,8 +175,7 @@ curl -sf http://localhost:5063/healthz   # → "Healthy"
 |------|--------|
 | Port 5063 | `dotnet run` reads `src/Atlas.Host/Properties/launchSettings.json`. The `http` profile sets `applicationUrl: http://localhost:5063`. When using `dotnet run`, launchSettings.json takes precedence over `ASPNETCORE_URLS` — always use port 5063. |
 | `Atlas__CatalogPath=$(pwd)/catalog` | Points to the bundled sample catalog already in the repository root. |
-| `Atlas__Mcp__AllowAnonymous=true` | Bypasses all OIDC/JWT authentication. No Keycloak token, no OIDC issuer configured. |
-| No OIDC issuer | `Program.cs` skips the entire JWT middleware when `Atlas__Oidc__Issuer` is empty. |
+| No `Atlas__Oidc__Issuer` | `Program.cs` skips the entire JWT Bearer middleware when this variable is absent. The UI endpoints (`/v1/apis`, `/v1/tools`) are `AllowAnonymous`, so the React UI loads without a token. `/mcp` is non-functional in this mode. |
 | React UI | Pre-built into `src/Atlas.Host/wwwroot/` — no Node.js build step needed. |
 | Catalog REST API | `/v1/apis` and `/v1/tools` are `AllowAnonymous` — the UI loads data without any Bearer token. |
 
