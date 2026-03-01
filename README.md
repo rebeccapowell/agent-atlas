@@ -345,9 +345,9 @@ dotnet build src/Atlas.AppHost/Atlas.AppHost.csproj
 
 ### Docker
 
-```bash
-docker build -t agent-atlas:latest .
+Pull the pre-built multi-arch image from GitHub Container Registry:
 
+```bash
 docker run -d \
   -p 8080:8080 \
   -v /path/to/your/catalog-repo:/catalog:ro \
@@ -355,7 +355,14 @@ docker run -d \
   -e Atlas__Oidc__Issuer=https://your-idp.example.com/realms/your-realm \
   -e Atlas__Oidc__Audience=api://agent-atlas \
   -e Atlas__PlatformPermissions__Claim=scope \
-  agent-atlas:latest
+  ghcr.io/rebeccapowell/agent-atlas:latest
+```
+
+To build from source instead:
+
+```bash
+docker build -t agent-atlas:local .
+docker run -d -p 8080:8080 ... agent-atlas:local
 ```
 
 ### Kubernetes / Helm

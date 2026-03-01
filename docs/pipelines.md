@@ -83,7 +83,8 @@ Use the **Promote** workflow (`Actions → Promote → Run workflow`) to merge `
 
 ### `docker-publish.yml` — Docker image
 - Triggered when a GitHub release is **published** (or via `workflow_dispatch` with an optional tag override)
-- Pushes a multi-arch (`linux/amd64`, `linux/arm64`) image to `ghcr.io/<owner>/atlas`
+- Pushes a multi-arch (`linux/amd64`, `linux/arm64`) image to `ghcr.io/rebeccapowell/agent-atlas`
+- Images include an SBOM and a provenance attestation
 - Tag strategy (from `docker/metadata-action`):
   - `1.2.3` — exact version
   - `1.2` — major.minor
@@ -138,15 +139,15 @@ No dedicated secret is needed — the Docker publish workflow authenticates with
 
 For public repositories, packages created by the workflow default to **private** unless the package has been previously published with a visibility setting. After the first push, go to:
 
-**Your profile → Packages → atlas → Package settings → Change visibility → Public**
+**Your profile → Packages → agent-atlas → Package settings → Change visibility → Public**
 
 This ensures users can pull the image without authentication.
 
 #### b. Link package to repository
 
-After the first publish, GitHub may not automatically link the `atlas` package to this repository. Link it manually:
+After the first publish, GitHub may not automatically link the `agent-atlas` package to this repository. Link it manually:
 
-**Your profile → Packages → atlas → Package settings → Connect repository → `<owner>/agent-atlas`**
+**Your profile → Packages → agent-atlas → Package settings → Connect repository → `<owner>/agent-atlas`**
 
 This allows the package to inherit the repository's access control and appear on the repository page.
 
