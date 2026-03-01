@@ -95,11 +95,17 @@ jobs:
       # Without a trusted dev cert the Aspire CLI warns that certificates "may
       # not be fully trusted" and the DCP process manager cannot complete its
       # HTTPS handshake, causing the AppHost to time out after 20 seconds.
+      #
+      # `dotnet dev-certs https --trust` exits with code 4 on Linux when it
+      # cannot register the cert with every trust store (e.g. NSS / browser
+      # stores may be absent on headless runners). The cert IS generated and
+      # trusted for .NET clients, which is all Aspire needs, so we treat a
+      # non-zero exit from the trust step as a warning rather than a failure.
       - name: Prepare local HTTPS development certificate
         run: |
           dotnet dev-certs https --clean
           dotnet dev-certs https
-          dotnet dev-certs https --trust
+          dotnet dev-certs https --trust || true
 
       # ── Node.js (Playwright MCP) ──────────────────────────────────────────────
       # Node.js is required to run the Playwright MCP server, which gives
