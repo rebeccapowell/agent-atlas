@@ -106,11 +106,14 @@ dotnet build AgentAtlas.slnx --no-restore
 # Run tests
 dotnet test src/Atlas.Host.Tests/ --no-build
 
-# Run Atlas.Host in the background (no Docker, no auth — UI screenshots only)
+# Run Atlas.Host for UI SCREENSHOTS ONLY (no auth — /mcp is non-functional in this mode)
+# Use this only to take Playwright screenshots of the React UI.
+# Do NOT use this to test MCP tools — the /mcp endpoint requires a real JWT.
 Atlas__CatalogPath=$(pwd)/catalog \
 dotnet run --project src/Atlas.Host --no-build &
 
-# Run Atlas.Host in the background with StubIdp auth (MCP tool testing)
+# Run Atlas.Host with StubIdp auth — the CORRECT way to test MCP tools (no Docker needed)
+# This is the only acceptable approach for agent/CI MCP testing without Keycloak.
 # First start StubIdp: dotnet run --project src/Atlas.StubIdp --no-build &
 Atlas__CatalogPath=$(pwd)/catalog \
 Atlas__Oidc__Issuer=http://localhost:5172 \
@@ -310,17 +313,32 @@ When running Atlas.Host with StubIdp manually, do **not** set
 When running via the full Aspire AppHost with Keycloak, the AppHost sets it to `scope`
 automatically (`WithEnvironment("Atlas__PlatformPermissions__Claim", "scope")`).
 
-### `Atlas__Mcp__AllowAnonymous` is not a real configuration key
+### `Atlas__Mcp__AllowAnonymous` is not a real configuration key — and anonymous MCP access is wrong by design
 
 Previous documentation incorrectly referenced this flag. It does not exist in
-`AtlasOptions`. The actual anonymous-mode mechanism is: when `Atlas__Oidc__Issuer` is
-**not set**, Atlas.Host registers no JWT Bearer scheme, so no authentication handler
-runs. The React UI endpoints (`/v1/apis`, `/v1/tools`) are `AllowAnonymous` regardless.
-The `/mcp` endpoint still has `RequireAuthorization()` but without an auth scheme it
-does not block requests in the same way.  
-**For UI screenshots**: omit `Atlas__Oidc__Issuer` entirely — no fake flag needed.  
-**For MCP tool testing**: set `Atlas__Oidc__Issuer=http://localhost:5172` and use a
-real JWT from StubIdp.
+`AtlasOptions` and should never be added.
+
+**Why anonymous MCP access would be wrong:**
+Agent Atlas is a governed execution gateway. When an agent calls `execute_plan`, Atlas
+proxies requests to downstream APIs using the **caller's JWT**. The platform permission
+checks (`platform-code-mode:search`, `platform-code-mode:execute`) exist to ensure the
+caller has explicitly been granted consent to use the gateway. Bypassing auth would mean:
+- Any unauthenticated caller could enumerate every tool in the catalog
+- Any unauthenticated caller could execute plans against downstream production APIs
+- Downstream permission checks (e.g. `someapi:customers:read`) would have no subject to enforce against
+
+The catalog UI (`/v1/apis`, `/v1/tools`) is intentionally `AllowAnonymous` — catalog
+*discovery* is open. Tool *execution* is not, and must not be.
+
+**The actual anonymous-mode mechanism** (and when it is acceptable):
+When `Atlas__Oidc__Issuer` is not set, Atlas.Host registers no JWT Bearer scheme.
+The React UI endpoints load fine because they are `AllowAnonymous`. This mode is
+**only acceptable for taking UI screenshots** — the `/mcp` endpoint is not usable.
+
+**For UI screenshots**: omit `Atlas__Oidc__Issuer` entirely — the UI works, `/mcp` does not.  
+**For MCP tool testing**: always use `Atlas__Oidc__Issuer=http://localhost:5172` with StubIdp
+and obtain a real JWT that carries the required scopes. This is not a workaround — it
+is the correct, intentional development workflow.
 
 ## MCP Tools Available to the Coding Agent
 
