@@ -1,3 +1,8 @@
+---
+title: Configuration Guide
+nav_order: 7
+---
+
 # Configuration Steps for GitHub Pages & Agentic Documentation
 
 This file contains the steps you need to take in the GitHub repository settings to enable:
@@ -134,6 +139,62 @@ For more information see:
 
 ---
 
+## 4. Taking screenshots with Aspire MCP and Playwright MCP
+
+When Copilot runs as the documentation agent, it can capture live screenshots of the
+running application and embed them in the docs or the repository README. This requires
+the **Aspire MCP server** and the **Playwright MCP server** to be active.
+
+### How it works
+
+```
+aspire mcp start          ← exposes OTel data, resource URLs, and structured app state
+npx @playwright/mcp       ← allows the agent to navigate and screenshot the Atlas UI
+```
+
+Copilot (or any coding agent) connects to both servers and can:
+
+1. Use the Aspire MCP to discover the URL of the running `atlas-host` resource.
+2. Use the Playwright MCP to navigate to the Atlas UI at that URL.
+3. Capture screenshots of the tools list, tool detail, APIs list, dark/light modes, etc.
+4. Embed those screenshots into `docs/` pages or the repository `README.md`.
+
+### Usage in non-interactive / CI mode
+
+> **Note:** In Aspire CLI 13.1.2, start the MCP server with `aspire mcp start`. The
+> `aspire agent mcp` command is not yet available in the published NuGet package
+> (it is in the main branch only).
+
+```bash
+# Terminal 1 — start the Aspire application
+aspire run --project src/Atlas.AppHost
+
+# Terminal 2 — start the Aspire MCP server (exposes OTel/resource data to the agent)
+aspire mcp start
+
+# The Playwright MCP server is started on demand by the agent via npx:
+# npx @playwright/mcp@latest
+```
+
+Configuration for both MCP servers is already committed to the repository:
+- `.copilot/mcp-config.json` — shared team config (Aspire MCP + Playwright MCP)
+- `.vscode/mcp.json` — VS Code workspace config
+
+### Instructing Copilot to take screenshots
+
+When filing a documentation update issue or editing the `update-docs.md` workflow
+instructions, include a task like:
+
+```
+- [ ] Use the Aspire MCP to get the atlas-host URL.
+- [ ] Use the Playwright MCP to navigate to the Atlas UI.
+- [ ] Take a screenshot of the tools list (light mode) and save to docs/screenshots/.
+- [ ] Take a screenshot of the tool detail panel and save to docs/screenshots/.
+- [ ] Update docs/index.md to reference the new screenshots.
+```
+
+---
+
 ## Summary checklist
 
 | Step | Where | Required for |
@@ -143,3 +204,4 @@ For more information see:
 | Allow Actions to **create PRs** | Settings → Actions → General | Agentic doc update PRs |
 | **Copilot coding agent** enabled | Settings → Copilot → Coding agent | Automated doc updates |
 | Labels: `documentation`, `automation` | Issues → Labels | Clean issue tagging (auto-created) |
+| `.copilot/mcp-config.json` committed | Already in repo | Aspire MCP + Playwright MCP for screenshots |

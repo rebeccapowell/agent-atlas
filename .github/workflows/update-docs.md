@@ -91,8 +91,32 @@ Agent Atlas is an ASP.NET Core 10 / .NET Aspire project. The key areas and their
    - Each file must start with Jekyll frontmatter (`title`, `nav_order`)
    - Follow progressive disclosure: high-level concepts first, detailed examples second
    - Ensure content is accessible and accurate
+   - **Capture live screenshots** when visual changes are made (see below)
 
-4. **Quality Assurance**
+4. **Capture Screenshots Using Aspire MCP and Playwright MCP**
+
+   When the application is running, use the available MCP servers to take live screenshots
+   for documentation and the repository README:
+
+   - Use the **Aspire MCP** (`aspire mcp start`) to discover the URL of the running
+     `atlas-host` resource and inspect OTel traces/logs.
+   - Use the **Playwright MCP** (`npx @playwright/mcp`) to navigate to the Atlas UI at
+     that URL and capture screenshots.
+
+   Screenshot checklist for UI changes:
+   - [ ] Tools list — light mode (`docs/screenshots/01-tools-list-light.png`)
+   - [ ] Tool detail panel (`docs/screenshots/02-tool-detail.png`)
+   - [ ] APIs list — light mode (`docs/screenshots/03-apis-list-light.png`)
+   - [ ] Tools list — dark mode (`docs/screenshots/04-tools-list-dark.png`)
+   - [ ] APIs list — dark mode (`docs/screenshots/05-apis-list-dark.png`)
+   - [ ] Tool detail — dark mode (`docs/screenshots/06-tool-detail-dark.png`)
+
+   After saving screenshots, update `docs/index.md` and `README.md` to reference them.
+
+   MCP server configuration is committed at `.copilot/mcp-config.json` (Aspire MCP +
+   Playwright MCP) and `.vscode/mcp.json`.
+
+5. **Quality Assurance**
 
    - Check for broken links or formatting issues
    - Ensure code examples are accurate and functional

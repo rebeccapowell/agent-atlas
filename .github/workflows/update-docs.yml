@@ -50,14 +50,17 @@ jobs:
         id: changes
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            BASE="origin/${{ github.base_ref }}"
-            git fetch origin ${{ github.base_ref }} --depth=1
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            git fetch origin "$BASE" "$HEAD_SHA" --depth=1 || true
           else
-            BASE="HEAD~1"
+            BASE="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+            git fetch origin "$BASE" "$HEAD_SHA" --depth=1 || true
           fi
 
           # Source files that typically drive documentation updates
-          CHANGED=$(git diff --name-only "$BASE" HEAD \
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD_SHA" \
             | grep -E '\.(cs|csproj|yaml|yml|json)$' \
             | grep -vE '^(docs/|\.github/workflows/update-docs)' \
             | head -30 || true)
@@ -158,26 +161,63 @@ jobs:
               }
             }
 
-            const issue = await github.rest.issues.create({
+            // Try to find an existing open documentation review issue for this PR/ref
+            const existingIssues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `docs: Review documentation after ${ref}`,
-              body,
               labels: ['documentation', 'automation'],
-              // Assign to GitHub Copilot coding agent.
-              // Requires "Copilot coding agent" to be enabled in repository settings.
-              // (Settings → Copilot → Coding agent)
-              assignees: ['github-copilot'],
+              state: 'open',
+              per_page: 100,
             });
 
-            console.log(`Created documentation review issue: ${issue.data.html_url}`);
+            let issue = existingIssues.data.find(i => typeof i.body === 'string' && i.body.includes(link));
 
-            // Post a link to the issue on the PR (if this is a PR event)
-            if (context.eventName === 'pull_request') {
-              await github.rest.issues.createComment({
+            if (issue) {
+              const updatedBody = `${issue.body}\n\n---\n\n_Update from workflow run ${runUrl} for ${ref}_`;
+              const updated = await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                body: `📖 **Documentation review requested**\n\nA documentation review issue has been created and assigned to GitHub Copilot: ${issue.data.html_url}\n\nCopilot will review the \`/docs\` folder and open a draft PR if updates are needed.`,
+                issue_number: issue.number,
+                body: updatedBody,
               });
+              issue = updated.data;
+              console.log(`Updated existing documentation review issue: ${issue.html_url}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `docs: Review documentation after ${ref}`,
+                body,
+                labels: ['documentation', 'automation'],
+                // Assign to GitHub Copilot coding agent.
+                // Requires "Copilot coding agent" to be enabled in repository settings.
+                // (Settings → Copilot → Coding agent)
+                assignees: ['github-copilot'],
+              });
+              issue = created.data;
+              console.log(`Created documentation review issue: ${issue.html_url}`);
+            }
+
+            // Post a link to the issue on the PR (if this is a PR event), avoiding duplicates
+            if (context.eventName === 'pull_request') {
+              const prNumber = context.payload.pull_request.number;
+              const existingComments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                per_page: 100,
+              });
+              const markerText = '📖 **Documentation review requested**';
+              const hasComment = existingComments.data.some(c => typeof c.body === 'string' && c.body.includes(markerText));
+
+              if (!hasComment) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: `📖 **Documentation review requested**\n\nA documentation review issue has been created and assigned to GitHub Copilot: ${issue.html_url}\n\nCopilot will review the \`/docs\` folder and open a draft PR if updates are needed.`,
+                });
+              } else {
+                console.log('Documentation review comment already exists on this pull request; skipping creating a duplicate comment.');
+              }
             }

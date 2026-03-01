@@ -75,4 +75,3 @@ exclude:
   - "*.jpg"
   - "*.jpeg"
   - "*.gif"
-  - CONFIGURATION.md
