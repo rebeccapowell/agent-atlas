@@ -296,11 +296,21 @@ TOKEN=$(curl -s -X POST \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
 
-### Option B — StubIdp fallback (agent / CI environments without Docker)
+### Option B — StubIdp fallback (agent / CI — Atlas auth gate only, not end-to-end)
 
-When Docker is unavailable, use Atlas.StubIdp as a lightweight JWT issuer.
-StubIdp does not support browser-based OAuth2.0 flows — it exposes a simple token
-endpoint that issues JWTs directly. Use this only when Keycloak is not available.
+> **Scope limitation — read before using this approach.**
+> Atlas is a **proxy gateway**. When an agent calls `execute_plan`, Atlas takes the
+> caller's JWT and forwards it verbatim as `Authorization: Bearer <token>` to the
+> downstream API (see `ExecutionEngine.cs`). The downstream sample APIs
+> (`sample-api-tool-enabled` etc.) only run inside the full Aspire stack.
+>
+> **StubIdp can only verify that Atlas's own JWT auth gate works** — i.e. that Atlas
+> accepts the token and allows `search_tools` / `describe_tool` calls. It cannot
+> exercise the full proxy path. Use Option A (Keycloak + full stack) whenever you need
+> to test `execute_plan`.
+
+When Docker is unavailable and you only need to verify Atlas's auth layer (catalog
+search, tool description), StubIdp is a lightweight fallback:
 
 ```bash
 # 1. Start StubIdp — JWT issuer on http://localhost:5172
@@ -331,7 +341,7 @@ RESP=$(curl -s -X POST http://localhost:5063/mcp \
   -D -)
 SID=$(echo "$RESP" | grep -i "mcp-session-id:" | awk '{print $2}' | tr -d '\r')
 
-# 5. Call search_tools
+# 5. Call search_tools (catalog-only — no downstream proxy call)
 curl -s -X POST http://localhost:5063/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
@@ -348,7 +358,8 @@ To use MCP Inspector with StubIdp (no browser OAuth2.0 flow available):
 1. Get a token using the curl command above
 2. Set **Transport Type** → `Streamable HTTP`, **URL** → `http://localhost:5063/mcp`, **Connection Type** → `Direct`
 3. Expand **Authentication → Custom Headers**, add `Authorization: Bearer <token>`
-4. Click **Connect**, then **List Tools**
+4. Click **Connect**, then **List Tools** — `search_tools` and `describe_tool` will work;
+   `execute_plan` will fail unless the downstream sample APIs are also running
 
 ## Known Gotchas
 
