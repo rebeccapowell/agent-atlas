@@ -11,30 +11,56 @@ on:
     paths:
       - .github/workflows/copilot-setup-steps.yml
 
+permissions:
+  contents: read
+
 jobs:
   # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
   copilot-setup-steps:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout code
+      - name: Check out repository
+        # The agent needs the full repo contents available in its environment.
         uses: actions/checkout@v4
 
       # ── .NET 10 ──────────────────────────────────────────────────────────────
-      - name: Set up .NET 10
+      - name: Set up .NET SDK
+        # Use the SDK your repo expects. Adjust if you pin a global.json.
+        # The agent will need the SDK both to build and to run the Aspire AppHost.
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+
+      # ── NuGet cache ──────────────────────────────────────────────────────────
+      - name: Cache NuGet packages
+        # Speeds up repeated agent tasks substantially.
+        # Helpful because screenshot/doc refresh tasks may run often.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nuget/packages
+            ~/.local/share/NuGet/v3-cache
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'global.json', 'NuGet.config') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
       # ── Aspire CLI ───────────────────────────────────────────────────────────
       # Required to run the Aspire application host and to start the Aspire MCP
       # server (`aspire mcp start`) that gives Copilot access to OTel traces,
       # logs, resource URLs, and structured application data.
+      #
+      # We install via the official aspire.dev installer script rather than
+      # `dotnet tool install --global aspire.cli` because the installer also
+      # sets up the correct PATH entry and any required native dependencies.
       - name: Install Aspire CLI
-        run: dotnet tool install --global aspire.cli
+        run: |
+          curl -fsSL https://aspire.dev/install.sh | bash
+          echo "$HOME/.aspire/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Aspire CLI installation
+        # Early failure is better than a vague agent error later.
+        run: aspire --version
 
       # Note: `aspire agent init` is the correct non-interactive command for initializing the
       # Aspire MCP configuration in agent/CI environments, and `aspire mcp init` is its legacy
@@ -60,6 +86,21 @@ jobs:
       # - name: Initialise Aspire agent configuration
       #   run: aspire agent init --non-interactive
 
+      # ── HTTPS development certificate ─────────────────────────────────────────
+      # On modern Linux runners, .NET can trust the dev cert for .NET APIs and
+      # Chromium. We do this explicitly even though "aspire run" also verifies
+      # trust, because it makes certificate issues fail earlier and more clearly
+      # during environment setup.
+      #
+      # Without a trusted dev cert the Aspire CLI warns that certificates "may
+      # not be fully trusted" and the DCP process manager cannot complete its
+      # HTTPS handshake, causing the AppHost to time out after 20 seconds.
+      - name: Prepare local HTTPS development certificate
+        run: |
+          dotnet dev-certs https --clean
+          dotnet dev-certs https
+          dotnet dev-certs https --trust
+
       # ── Node.js (Playwright MCP) ──────────────────────────────────────────────
       # Node.js is required to run the Playwright MCP server, which gives
       # Copilot the ability to navigate and interact with the running React UI.
@@ -70,11 +111,22 @@ jobs:
 
       # Pre-install Playwright system dependencies so the MCP server can launch
       # a browser without network access at session time.
-      - name: Install Playwright browser dependencies
-        run: npx -y playwright install --with-deps chromium
+      - name: Install Playwright browsers if needed by local tooling
+        # The Playwright MCP server is enabled by default for coding agent,
+        # but installing browser/runtime dependencies here can reduce flakiness
+        # if your repo or task ends up invoking Playwright-related setup locally.
+        run: npx --yes playwright install --with-deps chromium
 
       # ── .NET dependencies ─────────────────────────────────────────────────────
       # Restore NuGet packages up front so the agent does not need to do so on
       # first build.
-      - name: Restore .NET dependencies
-        run: dotnet restore src/Atlas.AppHost/Atlas.AppHost.csproj
+      - name: Restore solution dependencies
+        run: dotnet restore AgentAtlas.slnx
+
+      # ── Helpful hints ─────────────────────────────────────────────────────────
+      - name: Print useful repo hints
+        # This is just a breadcrumb for the agent and for humans debugging setup.
+        run: |
+          echo "Use Aspire AppHost project: src/Atlas.AppHost/Atlas.AppHost.csproj"
+          echo "Main UI/API service is Atlas.Host"
+          echo "Preferred startup command: aspire run --project src/Atlas.AppHost/Atlas.AppHost.csproj"
