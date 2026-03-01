@@ -86,6 +86,22 @@ The local development Keycloak realm (`src/Atlas.AppHost/keycloak/atlas-realm.js
 
 `atlas-mcp-client` carries three default scopes: `platform-code-mode:search`, `platform-code-mode:execute`, and `someapi:customers:read`.
 
+### Seeded group and developer account
+
+The realm import also creates an `atlas-developers` group and a single pre-configured user for local development and demos:
+
+| Field | Value |
+|-------|-------|
+| **Username** | `developer` |
+| **Password** | `developer` |
+| **Email** | `developer@example.test` |
+| **Group** | `atlas-developers` |
+
+This account is created automatically when Aspire starts Keycloak — no manual setup is required. When signing in through MCP Inspector's guided PKCE flow the account receives all three default scopes (`platform-code-mode:search`, `platform-code-mode:execute`, `someapi:customers:read`) from the `mcp-inspector` client's default scope configuration.
+
+{: .warning }
+The seeded `developer` account is **for local development and demos only**. Do not rely on it in any shared, staging, or production environment. For non-local deployments, remove this user from the realm import or replace its credentials and group membership before exposing the system to other users.
+
 ### Guided OAuth2 discovery via `ProtectedResourceMetadata`
 
 When an unauthenticated request reaches `/mcp`, Atlas returns:
