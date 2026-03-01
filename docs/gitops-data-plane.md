@@ -1,3 +1,8 @@
+---
+title: GitOps Data Plane
+nav_order: 3
+---
+
 # GitOps Data Plane Repo Structure
 
 Agent Atlas uses a Git repository as its "data plane database". All catalog metadata and OpenAPI specs live in this repo.
