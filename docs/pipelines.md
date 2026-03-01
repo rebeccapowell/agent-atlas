@@ -101,6 +101,13 @@ Use the **Promote** workflow (`Actions → Promote → Run workflow`) to merge `
 - Manual only (`workflow_dispatch` with optional dry-run mode)
 - Merges `dev → preview` (stripping internal squad/AI-team files), then `preview → main`
 
+### `squad-docs.yml` — Docs site build & deploy
+- Triggered on pushes to `main` that touch `docs/**` or the workflow file itself, and via `workflow_dispatch`
+- Builds the `/docs` Jekyll site using `actions/jekyll-build-pages@v1`
+- Uploads the built site as a GitHub Pages artifact and deploys it via `actions/deploy-pages@v4`
+- Requires **Settings → Pages → Source → GitHub Actions** to be enabled (see [step 4](#4-github-pages-optional))
+- Only one deployment runs at a time; in-progress deployments are never cancelled
+
 ---
 
 ## Required GitHub settings
@@ -160,7 +167,7 @@ This allows the package to inherit the repository's access control and appear on
 
 ### 4. GitHub Pages (optional)
 
-Only needed if you configure `squad-docs.yml` to actually build and deploy a documentation site.
+Only needed if you want `squad-docs.yml` to publish the documentation site.
 
 **Path:** Settings → Pages
 
@@ -169,7 +176,18 @@ Only needed if you configure `squad-docs.yml` to actually build and deploy a doc
 | Source | **GitHub Actions** |
 | Branch | _(not applicable — source is set to GitHub Actions)_ |
 
-The `squad-docs.yml` workflow currently has a placeholder `echo` command. Update it with your actual documentation build tool (e.g. [DocFX](https://dotnet.github.io/docfx/), [MkDocs](https://www.mkdocs.org/), or plain HTML) before enabling Pages.
+The `squad-docs.yml` workflow builds the `/docs` folder as a **Jekyll** site using the official `actions/jekyll-build-pages@v1` action and deploys it to GitHub Pages via `actions/deploy-pages@v4`. No additional configuration is required beyond enabling the GitHub Actions source above.
+
+Each Markdown file under `/docs` must include Jekyll front matter with at least a `title` and `nav_order` field for correct site navigation. For example:
+
+```markdown
+---
+title: CI/CD Pipelines
+nav_order: 6
+---
+```
+
+The workflow fires automatically on any push to `main` that touches `docs/**` or the workflow file itself. You can also trigger it manually from **Actions → Squad Docs — Build & Deploy → Run workflow**.
 
 ---
 
