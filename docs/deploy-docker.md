@@ -1,3 +1,8 @@
+---
+title: Deploy with Docker
+nav_order: 4
+---
+
 # Deploy Agent Atlas with Docker
 
 ## Prerequisites

@@ -1,0 +1,183 @@
+name: Agentic Documentation Update
+# Analyses code changes and creates a documentation review task for GitHub Copilot.
+#
+# This workflow is the compiled output of .github/workflows/update-docs.md
+# (a GitHub Agentic Workflow — see https://github.com/githubnext/agentics).
+#
+# On every push to main or PR against main/dev/preview, it detects code changes
+# that may require documentation updates and assigns GitHub Copilot to review
+# and update the /docs folder accordingly.
+#
+# REQUIREMENTS — see docs/CONFIGURATION.md for full setup instructions:
+#   1. GitHub Copilot coding agent must be enabled for this repository
+#      (Settings → Copilot → Coding agent)
+#   2. Workflow permissions must be set to "Read and write"
+#      (Settings → Actions → General → Workflow permissions)
+#   3. Allow GitHub Actions to create and approve pull requests
+#      (Settings → Actions → General → Workflow permissions)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  pull_request:
+    branches: [main, dev, preview]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review-docs:
+    name: Review documentation for code changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect code changes that may need documentation
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+            git fetch origin ${{ github.base_ref }} --depth=1
+          else
+            BASE="HEAD~1"
+          fi
+
+          # Source files that typically drive documentation updates
+          CHANGED=$(git diff --name-only "$BASE" HEAD \
+            | grep -E '\.(cs|csproj|yaml|yml|json)$' \
+            | grep -vE '^(docs/|\.github/workflows/update-docs)' \
+            | head -30 || true)
+
+          # Build a human-readable list
+          if [ -n "$CHANGED" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            # Escape newlines for multiline output
+            CHANGED_ESCAPED=$(echo "$CHANGED" | tr '\n' '|')
+            echo "changed_files=$CHANGED_ESCAPED" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No relevant code changes detected — skipping documentation review."
+          fi
+
+      - name: Build context for Copilot
+        id: context
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            REF="PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+            LINK="${{ github.event.pull_request.html_url }}"
+          else
+            REF="Commit ${{ github.sha }}"
+            LINK="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "link=$LINK" >> "$GITHUB_OUTPUT"
+
+      - name: Create documentation review issue for Copilot
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const changedRaw = "${{ steps.changes.outputs.changed_files }}";
+            const changedFiles = changedRaw.split('|').filter(f => f.trim()).join('\n');
+            const ref = "${{ steps.context.outputs.ref }}";
+            const link = "${{ steps.context.outputs.link }}";
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const body = [
+              `## Documentation Review Request`,
+              ``,
+              `This issue was automatically created by the [Agentic Documentation Update workflow](${runUrl}).`,
+              `A code change was detected that may require documentation updates.`,
+              ``,
+              `**Source:** [${ref}](${link})`,
+              ``,
+              `**Changed files (code only):**`,
+              `\`\`\``,
+              changedFiles,
+              `\`\`\``,
+              ``,
+              `## Instructions for Copilot`,
+              ``,
+              `Please review the \`/docs\` folder and update documentation to reflect these changes.`,
+              ``,
+              `Follow this checklist:`,
+              ``,
+              `- [ ] Review \`docs/security-model.md\` if auth, JWT, OIDC, or permission logic changed`,
+              `- [ ] Review \`docs/gitops-data-plane.md\` if catalog loading, \`x-mcp\` parsing, or \`CatalogLoader\` changed`,
+              `- [ ] Review \`docs/deploy-docker.md\` if \`Dockerfile\`, environment variables, or health endpoints changed`,
+              `- [ ] Review \`docs/deploy-helm.md\` if Helm chart values or Kubernetes manifests changed`,
+              `- [ ] Review \`docs/pipelines.md\` if GitHub Actions workflows changed`,
+              `- [ ] Review \`docs/index.md\` if configuration options, architecture, or MCP tools changed`,
+              ``,
+              `**Requirements:**`,
+              `- Each docs file must have Jekyll frontmatter (\`title\`, \`nav_order\`)`,
+              `- Use Markdown only (no MDX unless interactive components are essential)`,
+              `- Active voice, plain English, progressive disclosure`,
+              `- Target branch for any doc PR: \`dev\``,
+              `- Create a **draft** pull request labelled \`documentation\` and \`automation\``,
+              ``,
+              `> If no documentation changes are needed, close this issue with a comment explaining why.`,
+            ].join('\n');
+
+            // Create labels if they don't exist (best effort)
+            for (const label of ['documentation', 'automation']) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label,
+                });
+              } catch {
+                try {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                    color: label === 'documentation' ? '0075ca' : 'e4e669',
+                    description: label === 'documentation' ? 'Improvements or additions to documentation' : 'Automated by a workflow',
+                  });
+                } catch (e) {
+                  console.warn(`Could not create label '${label}': ${e.message}`);
+                }
+              }
+            }
+
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `docs: Review documentation after ${ref}`,
+              body,
+              labels: ['documentation', 'automation'],
+              // Assign to GitHub Copilot coding agent.
+              // Requires "Copilot coding agent" to be enabled in repository settings.
+              // (Settings → Copilot → Coding agent)
+              assignees: ['github-copilot'],
+            });
+
+            console.log(`Created documentation review issue: ${issue.data.html_url}`);
+
+            // Post a link to the issue on the PR (if this is a PR event)
+            if (context.eventName === 'pull_request') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `📖 **Documentation review requested**\n\nA documentation review issue has been created and assigned to GitHub Copilot: ${issue.data.html_url}\n\nCopilot will review the \`/docs\` folder and open a draft PR if updates are needed.`,
+              });
+            }

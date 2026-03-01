@@ -1,0 +1,78 @@
+title: Agent Atlas
+description: >-
+  Enterprise MCP Gateway — a governed, searchable catalog of API tools
+  for humans and AI agents.
+baseurl: "/agent-atlas"
+url: "https://rebeccapowell.github.io"
+
+remote_theme: just-the-docs/just-the-docs@v0.10.1
+
+color_scheme: light
+
+# Navigation
+nav_sort: case_sensitive
+
+# Search
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 2
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+  focus_shortcut_key: "k"
+
+# Heading anchor links
+heading_anchors: true
+
+# Aux links
+aux_links:
+  "GitHub":
+    - "https://github.com/rebeccapowell/agent-atlas"
+aux_links_new_tab: true
+
+# Footer
+footer_content: >-
+  Agent Atlas &mdash; Enterprise MCP Gateway.
+  Released under the <a href="https://github.com/rebeccapowell/agent-atlas/blob/main/LICENSE">MIT licence</a>.
+
+# Back to top
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Callouts
+callouts_level: loud
+callouts:
+  highlight:
+    color: yellow
+  important:
+    title: Important
+    color: blue
+  new:
+    title: New
+    color: green
+  note:
+    title: Note
+    color: purple
+  warning:
+    title: Warning
+    color: red
+
+# GitHub repo link in header
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/rebeccapowell/agent-atlas"
+gh_edit_branch: "main"
+gh_edit_source: "docs"
+gh_edit_view_mode: "edit"
+
+# Exclude files that are not pages
+exclude:
+  - screenshots/
+  - "*.png"
+  - "*.jpg"
+  - "*.jpeg"
+  - "*.gif"
+  - CONFIGURATION.md

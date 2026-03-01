@@ -1,3 +1,8 @@
+---
+title: Security Model
+nav_order: 2
+---
+
 # Security Model: Platform Permissions vs Downstream Auth
 
 ## Overview

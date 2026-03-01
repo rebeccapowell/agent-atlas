@@ -1,3 +1,8 @@
+---
+title: CI/CD Pipelines
+nav_order: 6
+---
+
 # CI/CD Pipeline Setup Guide
 
 This document explains every GitHub repository setting, secret, and one-off configuration step needed to make the Agent Atlas CI/CD pipelines work correctly.

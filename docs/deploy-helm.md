@@ -1,3 +1,8 @@
+---
+title: Deploy with Helm
+nav_order: 5
+---
+
 # Deploy Agent Atlas with Helm
 
 ## Prerequisites
