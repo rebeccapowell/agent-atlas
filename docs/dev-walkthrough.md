@@ -152,6 +152,15 @@ Click **Connect**. Atlas.Host responds with `401 Unauthorized` and a `WWW-Authen
 
 ![Keycloak login page — sign in to Agent Atlas realm](screenshots/wt-12-keycloak-login.png)
 
+Sign in with the pre-configured developer account:
+
+| Field | Value |
+|-------|-------|
+| **Username** | `developer` |
+| **Password** | `developer` |
+
+This account is created automatically by the realm import — no manual setup required. It belongs to the `atlas-developers` group and receives all three required scopes (`platform-code-mode:search`, `platform-code-mode:execute`, `someapi:customers:read`) from the `mcp-inspector` client's default scope configuration. **This seeded `developer` account is intended for local development and demos only; do not use or rely on it in any shared, staging, or production environment. For non-local deployments, remove this user from the realm import or change its credentials and permissions before exposing the system to other users.**
+
 Complete the Keycloak login. MCP Inspector exchanges the authorization code for a token and retries the connection automatically. The status changes to **Connected**, Atlas.Host's server info appears, and a success notification confirms the guided PKCE flow completed.
 
 ![MCP Inspector — Connected after guided OAuth2 PKCE flow via Keycloak](screenshots/wt-13-mcp-inspector-guided-connected.png)

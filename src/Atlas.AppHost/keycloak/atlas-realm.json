@@ -40,6 +40,37 @@
     }
   ],
 
+  "groups": [
+    {
+      "name": "atlas-developers",
+      "path": "/atlas-developers",
+      "realmRoles": [],
+      "clientRoles": {},
+      "subGroups": [],
+      "attributes": {}
+    }
+  ],
+
+  "users": [
+    {
+      "username": "developer",
+      "email": "developer@example.test",
+      "firstName": "Atlas",
+      "lastName": "Developer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "developer",
+          "temporary": false
+        }
+      ],
+      "groups": ["/atlas-developers"],
+      "requiredActions": []
+    }
+  ],
+
   "clients": [
     {
       "clientId": "atlas-mcp-client",
