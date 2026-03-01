@@ -3,7 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Catalog directory - points to the repo's catalog/ directory during local development
 var catalogPath = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "catalog"));
 
-// Keycloak identity provider with atlas realm (replaces Atlas.StubIdp for local dev)
+// Keycloak identity provider with atlas realm
 var keycloak = builder.AddKeycloak("keycloak")
     .WithRealmImport(Path.Combine(builder.AppHostDirectory, "keycloak"))
     .WithExternalHttpEndpoints();

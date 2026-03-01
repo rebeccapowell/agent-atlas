@@ -23,6 +23,9 @@ if (!string.IsNullOrEmpty(atlasOpts.Oidc.Issuer))
         {
             options.Authority = atlasOpts.Oidc.Issuer;
             options.Audience = atlasOpts.Oidc.Audience;
+            // Preserve JWT claim names as-is (e.g. scp, sub) rather than mapping
+            // them to the legacy WS-Federation URI form used by JwtSecurityTokenHandler.
+            options.MapInboundClaims = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidIssuers = atlasOpts.Oidc.AllowedIssuers.Length > 0
@@ -80,13 +83,16 @@ var allowedOrigins = builder.Configuration.GetSection("Atlas:Cors:AllowedOrigins
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(policy =>
 {
     if (allowedOrigins is { Length: > 0 })
-        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()
+              .WithExposedHeaders("Mcp-Session-Id");
     else if (builder.Environment.IsDevelopment())
         policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5000", "http://localhost:6274")
-              .AllowAnyHeader().AllowAnyMethod();
+              .AllowAnyHeader().AllowAnyMethod()
+              .WithExposedHeaders("Mcp-Session-Id");
     else
         // No origins configured in production - deny cross-origin requests by default
-        policy.AllowAnyHeader().AllowAnyMethod();
+        policy.AllowAnyHeader().AllowAnyMethod()
+              .WithExposedHeaders("Mcp-Session-Id");
 }));
 
 // Health checks

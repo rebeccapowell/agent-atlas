@@ -291,7 +291,6 @@ Supported step types: `call`, `foreach`, `if`, `return`. The engine enforces con
 |---------|-------------|
 | **Atlas.AppHost** | .NET Aspire orchestration host — wires all services together for local dev |
 | **Atlas.Host** | The main service: MCP server, catalog REST API, React UI, execution engine |
-| **Atlas.StubIdp** | Lightweight in-process RSA JWT issuer for offline/CI dev (no Keycloak required) |
 | **SampleApi.ToolEnabled** | Demo customer API whose operations are registered as MCP tools |
 | **SampleApi.NotToolEnabled** | Demo products API intentionally *not* registered as tools |
 
@@ -315,7 +314,7 @@ The Aspire dashboard opens automatically at **http://localhost:15000** (or https
 
 > **Note:** On first run, Docker will pull the Keycloak and MCP Inspector images. This can take several minutes depending on your connection speed. Watch the Aspire dashboard — Atlas.Host will show as **Running** only after Keycloak has finished starting.
 
-> **Note:** Docker Desktop must be running — Keycloak is launched as a container. If you don't have Docker, use the StubIdp fallback below.
+> **Note:** Docker Desktop must be running — Keycloak is launched as a container.
 
 **Default Keycloak credentials for local dev**
 
@@ -323,20 +322,6 @@ The Aspire dashboard opens automatically at **http://localhost:15000** (or https
 |--------|-----------|--------|--------|
 | M2M (`client_credentials`) | `atlas-mcp-client` | `atlas-mcp-secret` | `platform-code-mode:search platform-code-mode:execute` |
 | UI (PKCE) | `atlas-ui-client` | *(public)* | `platform-code-mode:search` |
-
-### Run without Docker (StubIdp fallback)
-
-`Atlas.StubIdp` is a lightweight in-process RSA JWT issuer. Run it standalone and point `Atlas__Oidc__Issuer` at it — no containers required. Suitable for pure offline dev or CI pipelines.
-
-```bash
-# Terminal 1 — StubIdp on port 5200
-ASPNETCORE_HTTP_PORTS=5200 dotnet run --project src/Atlas.StubIdp
-
-# Terminal 2 — Atlas.Host pointing at StubIdp
-Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Oidc__Issuer=http://localhost:5200 \
-dotnet run --project src/Atlas.Host
-```
 
 ### Build
 

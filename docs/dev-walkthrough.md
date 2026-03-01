@@ -1,0 +1,213 @@
+---
+title: Developer Walkthrough
+nav_order: 3
+---
+
+# Developer Walkthrough
+
+{: .note }
+This walkthrough takes you from a fresh clone through to running Atlas, exploring the capability map, and invoking MCP tools from MCP Inspector — the same flow an AI agent (GitHub Copilot, Claude, Cursor) goes through at runtime.
+
+---
+
+## 1. Start the stack
+
+### Prerequisites
+
+```bash
+# Trust the HTTPS development certificate (required once per machine)
+dotnet dev-certs https --clean
+dotnet dev-certs https
+dotnet dev-certs https --trust
+
+# Build all projects
+dotnet build src/Atlas.AppHost/Atlas.AppHost.csproj
+```
+
+### Launch with Aspire
+
+```bash
+aspire run --project src/Atlas.AppHost
+```
+
+Aspire starts all services and opens the **Aspire Developer Dashboard** automatically. On first run Docker pulls the Keycloak and MCP Inspector images, which can take a few minutes.
+
+---
+
+## 2. The Aspire dashboard
+
+Once all services are running, the Aspire dashboard shows every resource in the application — their state, endpoint URLs, structured logs, distributed traces, and metrics.
+
+The Aspire dashboard opens automatically at `https://localhost:17001` (or the URL printed to the terminal). It looks similar to the image below — each service card shows its state and links to its endpoints, logs, and traces.
+
+| Column | What it shows |
+|--------|---------------|
+| **Name** | Service name — `atlas-host`, `keycloak`, `sample-api-tool-enabled`, etc. |
+| **State** | Running / Starting / Unhealthy |
+| **Endpoints** | Clickable HTTPS/HTTP URLs for each service |
+| **Source** | Project path or container image |
+
+{: .important }
+Wait until **both** `atlas-host` and `keycloak` show **Running** before navigating to the Atlas UI or MCP Inspector. Keycloak must be ready before Atlas can validate JWT tokens.
+
+Use the **Logs** tab on the left for real-time structured logs, and **Traces** for distributed request traces across services.
+
+---
+
+## 3. The Agent Atlas capability map
+
+Navigate to the Atlas.Host endpoint shown in the Aspire dashboard (typically `https://localhost:<port>`).
+
+The React UI is a **read-only capability map** — no authentication is required to browse it.
+
+### Tools tab
+
+The **Tools** tab lists every API operation that has been published as an MCP tool via the `x-mcp` vendor extension.
+
+![Agent Atlas — Tools tab (light mode)](screenshots/wt-05-atlas-tools.png)
+
+Each card shows:
+- The stable tool ID (e.g. `sample-api.customers.list`)
+- The **safety tier** badge: `read`, `write`, or `destructive`
+- The HTTP method and path
+- Tags and the owning API ID
+
+Click any card to expand the **detail panel** showing full metadata — description, required downstream permissions, entitlement hint, and operation ID.
+
+![Agent Atlas — Tools list (light mode)](screenshots/01-tools-list-light.png)
+![Agent Atlas — Tool detail (light mode)](screenshots/02-tool-detail-light.png)
+
+### APIs tab
+
+The **APIs** tab lists every API registered in the catalog, with or without published tools.
+
+![Agent Atlas — APIs list (light mode)](screenshots/03-apis-list-light.png)
+
+### Use MCP tab
+
+The **Use MCP** tab provides ready-to-copy configuration snippets for VS Code (GitHub Copilot), Cursor, Claude Desktop, Claude Code, Windsurf, and M365 Copilot.
+
+![Agent Atlas — Use MCP tab (light mode)](screenshots/07-use-mcp-light.png)
+
+---
+
+## 4. Get an access token from Keycloak
+
+Atlas.Host requires a valid JWT with the `platform-code-mode:search` and `platform-code-mode:execute` scopes to call MCP tools.
+
+When running via Aspire (with Keycloak), use the `atlas-mcp-client` service account:
+
+```bash
+# Retrieve the Keycloak token endpoint from the Aspire dashboard, e.g.:
+TOKEN=$(curl -s -X POST \
+  https://<keycloak-host>/realms/atlas/protocol/openid-connect/token \
+  -d "grant_type=client_credentials" \
+  -d "client_id=atlas-mcp-client" \
+  -d "client_secret=atlas-mcp-secret" | jq -r .access_token)
+
+echo "Token: ${TOKEN:0:40}..."
+```
+
+The `atlas-realm.json` pre-configures `atlas-mcp-client` with three default scopes:
+- `platform-code-mode:search` — required to call `search_tools`
+- `platform-code-mode:execute` — required to call `execute_plan`
+- `someapi:customers:read` — downstream permission for the sample API
+
+---
+
+## 5. Connect MCP Inspector
+
+When running the full Aspire stack, MCP Inspector starts automatically (at `http://localhost:6274`). It is pre-wired to connect to Atlas.Host's `/mcp` endpoint.
+
+### Step 1 — Open MCP Inspector and configure auth
+
+Open MCP Inspector. Set:
+
+| Field | Value |
+|-------|-------|
+| **Transport Type** | Streamable HTTP |
+| **URL** | Atlas.Host `/mcp` endpoint from Aspire dashboard (e.g. `http://localhost:5063/mcp`) |
+| **Connection Type** | Direct |
+
+Expand **Authentication → Custom Headers** and add:
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Bearer <token from step 4>` |
+
+![MCP Inspector — authentication configured](screenshots/wt-01-mcp-inspector-setup.png)
+
+### Step 2 — Connect
+
+Click **Connect**. MCP Inspector sends an `initialize` request. Atlas.Host validates the JWT and, if valid, returns a session ID. The status changes to **Connected** and Atlas.Host's server info appears.
+
+![MCP Inspector — connected, tools listed](screenshots/wt-02-mcp-inspector-connected.png)
+
+Click **List Tools** to load the three Atlas MCP tools:
+- `search_tools` — search the catalog
+- `describe_tool` — get full metadata for a specific tool
+- `execute_plan` — run a JSON plan against downstream APIs
+
+### Step 3 — Run `search_tools`
+
+Select **search_tools** from the list. The right panel shows the tool's description, input schema, and safety annotations.
+
+![MCP Inspector — search_tools selected](screenshots/wt-03-mcp-inspector-search-tool.png)
+
+Leave all parameters as `null` to return all tools, then click **Run Tool**.
+
+![MCP Inspector — search_tools result](screenshots/wt-04-mcp-inspector-result.png)
+
+Atlas.Host responds with the full catalog. Each entry contains:
+- `toolId` — stable identifier used in `execute_plan`
+- `apiId`, `method`, `path` — routing metadata
+- `safety` — read / write / destructive
+- `requiredPermissions` — what the caller's JWT must contain for the downstream API
+- `entitlementHint` — human-readable access request guidance
+
+### Step 4 — Run `describe_tool`
+
+Select **describe_tool** and enter a `toolId` (e.g. `sample-api.customers.list`). Click **Run Tool** to retrieve the full OpenAPI-derived schema for that operation, including the request body/parameter schema.
+
+### Step 5 — Run `execute_plan`
+
+Select **execute_plan** and provide a plan in the `plan` parameter. A minimal dry-run plan looks like:
+
+```json
+{
+  "mode": "dryRun",
+  "steps": [
+    {
+      "type": "call",
+      "id": "list",
+      "toolId": "sample-api.customers.list"
+    }
+  ]
+}
+```
+
+Use `"mode": "dryRun"` first to validate the plan without making downstream HTTP calls. Switch to `"mode": "run"` to execute for real.
+
+---
+
+## 6. Using Atlas from an AI agent
+
+Once you have verified the tools work in MCP Inspector, configure your AI assistant to point at the Atlas `/mcp` endpoint. The **Use MCP** tab in the Atlas UI provides the exact configuration snippets.
+
+For GitHub Copilot in VS Code, add to `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "agent-atlas": {
+      "type": "http",
+      "url": "https://<atlas-host>/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:ATLAS_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+The agent can then call `search_tools` to discover available tools, `describe_tool` to understand schemas, and `execute_plan` to invoke them — all via the governed Atlas gateway.

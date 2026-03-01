@@ -9,7 +9,6 @@ Preferred: claude-sonnet-4.5
 ## Responsibilities
 - Implement and maintain `src/Atlas.Host/` (MCP server, catalog API, execution engine)
 - Maintain `src/Atlas.AppHost/` orchestration (Aspire resource wiring, Keycloak, service discovery)
-- Implement `src/Atlas.StubIdp/` for offline dev JWT issuance
 - Maintain `AtlasMcpTools.cs` (MCP tool implementations: SearchTools, DescribeTool, ExecutePlan)
 - Implement catalog loading (`ICatalogLoader`, `IToolIndex` abstractions)
 - Maintain JWT/OIDC auth: `Atlas__Oidc__*` config, `RequireAuthorization()` on `/mcp`
@@ -22,7 +21,6 @@ Preferred: claude-sonnet-4.5
 - `src/Atlas.Host/Api/CatalogApiEndpoints.cs` — catalog REST endpoints
 - `src/Atlas.Host/Program.cs` — service registration and middleware
 - `src/Atlas.AppHost/Program.cs` — Aspire orchestration
-- `src/Atlas.StubIdp/` — offline JWT issuer
 
 ## Conventions (non-negotiable)
 - Nullable reference types enabled — always handle nullability correctly

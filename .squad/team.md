@@ -27,7 +27,6 @@
 |------|---------|
 | `src/Atlas.Host/` | Main service: MCP server, catalog API, execution engine, React UI |
 | `src/Atlas.AppHost/` | .NET Aspire orchestration host |
-| `src/Atlas.StubIdp/` | Lightweight RSA JWT issuer for offline/CI dev |
 | `src/SampleApi.ToolEnabled/` | Demo API with MCP tools registered |
 | `src/SampleApi.NotToolEnabled/` | Demo API intentionally NOT registered |
 | `catalog/` | GitOps data-plane: catalog.yaml, apis/, policies/ |
@@ -39,7 +38,7 @@
 - Test projects: `<ProjectName>.Tests` naming convention
 - Nullable reference types enabled — always handle nullability
 - Implicit usings enabled
-- `/mcp` endpoint always requires JWT auth; `Atlas__Mcp__AllowAnonymous` for local dev only
+- `/mcp` endpoint always requires JWT auth
 - Catalog read endpoints (`/v1/apis`, `/v1/tools`) are `AllowAnonymous`
 - Build: `dotnet build src/Atlas.AppHost/Atlas.AppHost.csproj`
 - Run: `aspire run --project src/Atlas.AppHost` (preferred)
