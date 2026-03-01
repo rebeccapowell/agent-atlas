@@ -54,7 +54,7 @@
   "users": [
     {
       "username": "developer",
-      "email": "developer@example.com",
+      "email": "developer@example.test",
       "firstName": "Atlas",
       "lastName": "Developer",
       "enabled": true,
