@@ -58,7 +58,7 @@ Two MCP servers are configured in `.copilot/mcp-config.json`:
 
 | Server | Command | Capabilities |
 |--------|---------|--------------|
-| **aspire** | `aspire agent mcp` | Read OTel traces/logs/metrics, list running resources, get resource URLs, inspect structured application data from the running Aspire application |
+| **aspire** | `aspire mcp start` | Read OTel traces/logs/metrics, list running resources, get resource URLs, inspect structured application data from the running Aspire application |
 | **playwright** | `npx @playwright/mcp` | Navigate and interact with the running React UI in a browser — useful for verifying UI changes and end-to-end behaviour |
 
 Use the **aspire** MCP server to inspect OTel telemetry and resource URLs instead of
