@@ -206,10 +206,101 @@ Workflow for tasks that need a running application:
 3. Use the **aspire MCP** to retrieve the URL for each resource (endpoints vary per run).
 4. Only then use the **playwright MCP** to navigate and interact with the UI.
 
-## Testing MCP Tools with JWT Authentication (StubIdp — Agent / CI)
+## Keycloak and OAuth2.0
 
-When Docker is unavailable but you need to test the `/mcp` endpoint (not just the UI),
-use Atlas.StubIdp as a lightweight JWT issuer. This avoids the need for Keycloak.
+Keycloak is included in the Aspire AppHost specifically to provide **proper OAuth2.0
+authorization flows** for every type of Atlas consumer — human developers, AI agents,
+and automated pipelines. This is not just an OIDC token validator; it is the full
+authorization server that issues scoped access tokens and supports the browser-based
+PKCE flow that MCP Inspector uses for interactive developer authentication.
+
+### Why Keycloak is part of the Aspire setup
+
+Atlas.Host enforces that every `/mcp` caller holds explicit, scoped consent:
+
+- `platform-code-mode:search` — required to search the tool catalog
+- `platform-code-mode:execute` — required to execute plans against downstream APIs
+- Downstream permissions (e.g. `someapi:customers:read`) — forwarded in the caller's JWT
+  to the target API
+
+These scopes are real OAuth2.0 scopes defined in the Keycloak realm. Granting them
+requires an authorization server — hence Keycloak. StubIdp is only a fallback for
+headless CI environments where Docker is unavailable; it issues JWTs without enforcing
+real OAuth2.0 consent flows.
+
+### Keycloak OAuth2.0 clients in the `atlas` realm
+
+Three clients are pre-configured in `src/Atlas.AppHost/keycloak/atlas-realm.json`:
+
+| Client ID | Type | Flow | Purpose |
+|-----------|------|------|---------|
+| `atlas-mcp-client` | Confidential | Client credentials (M2M) | Programmatic agent / pipeline access to Atlas MCP. Secret: `atlas-mcp-secret`. Gets `platform-code-mode:search`, `platform-code-mode:execute`, and `someapi:customers:read` by default. |
+| `mcp-inspector` | Public (PKCE) | Authorization code + PKCE | MCP Inspector interactive developer authentication. Redirect URI: `http://localhost:6274/*`. Gets all three scopes by default. |
+| `atlas-ui-client` | Public (PKCE) | Authorization code + PKCE | Atlas React UI (future use). Gets `platform-code-mode:search` by default; `platform-code-mode:execute` is optional. |
+
+### How Atlas.Host advertises Keycloak to MCP Inspector
+
+Atlas.Host uses the MCP OAuth2.0 Resource Metadata spec to advertise Keycloak as
+the authorization server. When an unauthenticated request reaches `/mcp`, Atlas
+responds with:
+
+```
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="https://<keycloak>/realms/atlas/.well-known/openid-configuration"
+```
+
+MCP Inspector reads this header and can auto-discover the Keycloak token endpoint,
+authorization endpoint, and supported scopes — enabling its built-in guided OAuth2.0
+PKCE flow without any manual configuration. This is wired in `Atlas.Host/Program.cs`:
+
+```csharp
+options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme;
+// ...
+options.ResourceMetadata = new ProtectedResourceMetadata
+{
+    AuthorizationServers = [atlasOpts.Oidc.Issuer],  // points at Keycloak realm
+};
+```
+
+## Testing MCP Tools with JWT Authentication
+
+There are two approaches depending on whether Docker / Keycloak is available.
+
+### Option A — Full Aspire stack with Keycloak (preferred, proper OAuth2.0 PKCE flow)
+
+When the full Aspire AppHost is running:
+
+1. Open MCP Inspector — the Aspire dashboard shows its URL (typically `http://localhost:6274`)
+2. Set **Transport Type** → `Streamable HTTP`
+3. Set **URL** → the `atlas-host` `/mcp` endpoint from the Aspire dashboard
+4. Set **Connection Type** → `Direct`
+5. Expand **Authentication → OAuth 2.0 Flow** and fill in:
+   - **Client ID**: `mcp-inspector`
+   - **Client Secret**: *(leave empty — public PKCE client)*
+   - **Redirect URL**: `http://localhost:6274/oauth/callback`
+   - **Scope**: `openid platform-code-mode:search platform-code-mode:execute someapi:customers:read`
+6. Click **Connect** — MCP Inspector reads the `WWW-Authenticate` challenge from
+   Atlas.Host, auto-discovers the Keycloak authorization endpoint, and opens a browser
+   window for you to log in (or completes the PKCE exchange automatically).
+7. Click **List Tools** to verify all three Atlas tools appear.
+
+For M2M / scripted access using the `atlas-mcp-client` service account:
+
+```bash
+# Get token from Keycloak — use the URL shown in the Aspire dashboard for keycloak
+TOKEN=$(curl -s -X POST \
+  "https://<keycloak-host>/realms/atlas/protocol/openid-connect/token" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=atlas-mcp-client" \
+  -d "client_secret=atlas-mcp-secret" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+```
+
+### Option B — StubIdp fallback (agent / CI environments without Docker)
+
+When Docker is unavailable, use Atlas.StubIdp as a lightweight JWT issuer.
+StubIdp does not support browser-based OAuth2.0 flows — it exposes a simple token
+endpoint that issues JWTs directly. Use this only when Keycloak is not available.
 
 ```bash
 # 1. Start StubIdp — JWT issuer on http://localhost:5172
@@ -225,7 +316,7 @@ ATLAS_PID=$!
 sleep 6
 curl -sf http://localhost:5063/healthz   # should return "Healthy"
 
-# 3. Get an access token from StubIdp (form POST, not JSON)
+# 3. Get an access token from StubIdp (form POST, not JSON body)
 TOKEN=$(curl -s -X POST http://localhost:5172/token \
   -F "client_id=atlas-mcp-client" \
   -F "scope=platform-code-mode:search platform-code-mode:execute" \
@@ -252,21 +343,12 @@ curl -s -X POST http://localhost:5063/mcp \
 # kill $ATLAS_PID $STUB_PID
 ```
 
-### Connecting MCP Inspector to Atlas.Host (Direct mode)
+To use MCP Inspector with StubIdp (no browser OAuth2.0 flow available):
 
-When the full Aspire stack is running (or when using Atlas.Host + StubIdp as above),
-connect MCP Inspector at `http://localhost:6274` using **Direct** mode:
-
-1. Set **Transport Type** → `Streamable HTTP`
-2. Set **URL** → `http://localhost:5063/mcp` (or the URL from the Aspire dashboard)
-3. Set **Connection Type** → `Direct`  
-   *(Via Proxy mode requires the MCP Inspector proxy's own session token which may not
-   be available or may have expired; Direct mode avoids this dependency entirely.)*
-4. Expand **Authentication → Custom Headers**, add:
-   - Header name: `Authorization`
-   - Header value: `Bearer <token from StubIdp or Keycloak>`
-5. Click **Connect**, then **List Tools** to verify `search_tools`, `describe_tool`,
-   `execute_plan` are listed.
+1. Get a token using the curl command above
+2. Set **Transport Type** → `Streamable HTTP`, **URL** → `http://localhost:5063/mcp`, **Connection Type** → `Direct`
+3. Expand **Authentication → Custom Headers**, add `Authorization: Bearer <token>`
+4. Click **Connect**, then **List Tools**
 
 ## Known Gotchas
 
