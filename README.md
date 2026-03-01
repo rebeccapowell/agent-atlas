@@ -2,7 +2,7 @@
 
 Agent Atlas is an internal **map of capabilities** for your organisation's APIs, designed for the world where people and software agents (Microsoft Copilot, internal assistants, automation bots) need to reliably discover and use your systems — without tribal knowledge.
 
-In most enterprises, APIs exist everywhere but they're hard to use safely at scale. Teams publish endpoints, docs drift, permissions are unclear, and when an agent or developer wants to "do the thing" — create an order, look up meters, retrieve a customer record — they need to know which service owns it, what the inputs look like, what permissions are required, and how to chain calls together. Agent Atlas turns that sprawl into an operationally governed product: a single catalog that tells humans and agents _"these are the tools our organisation offers,"_ and a secure proxy that can execute those tools using the caller's existing identity.
+In most enterprises, APIs exist everywhere but they're hard to use safely at scale. Teams publish endpoints, docs drift, permissions are unclear, and when an agent or developer wants to "do the thing" — create an order, look up orders, retrieve a customer record — they need to know which service owns it, what the inputs look like, what permissions are required, and how to chain calls together. Agent Atlas turns that sprawl into an operationally governed product: a single catalog that tells humans and agents _"these are the tools our organisation offers,"_ and a secure proxy that can execute those tools using the caller's existing identity.
 
 ---
 
@@ -34,7 +34,8 @@ A curated inventory of the APIs and endpoints that your organisation considers "
 
 Agents like Copilot increasingly use a protocol called **MCP (Model Context Protocol)** to interact with tools. Instead of exposing hundreds of tools individually, Agent Atlas provides a small, stable interface:
 
-- **Search** for tools by intent ("meters", "create offer", "customer lookup")
+- **Search** for tools by intent ("orders", "create offer", "customer lookup")
+<!-- TODO: review domain-specific examples used in this file — "create offer" (above) may be worth replacing with something more generic, e.g. "submit request" or "place order". The "customer" and "order" references are intentional and approved. -->
 - **Describe** a tool (inputs, outputs, safety tier, required permissions)
 - **Execute** a plan that invokes one or more tools in sequence
 
