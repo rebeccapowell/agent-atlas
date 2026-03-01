@@ -32,11 +32,6 @@ dotnet dev-certs https --trust
 
 # 2. Run with Aspire (starts all services including Keycloak)
 aspire run --project src/Atlas.AppHost
-
-# Run without Docker (StubIdp fallback)
-Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Oidc__Issuer=http://localhost:5200 \
-aspire run --project src/Atlas.Host
 ```
 
 > **Note:** Aspire uses a local HTTPS certificate for service-to-service communication via its internal DCP process manager. Without a trusted certificate the AppHost times out after 20 seconds. On Linux, `dotnet dev-certs https --trust` may exit with code 4 when it cannot register with browser trust stores — this is non-fatal; the certificate is still trusted for .NET clients.
@@ -129,7 +124,6 @@ Browse the full documentation using the navigation on the left (or above on mobi
 |---|---|
 | **Atlas.AppHost** | .NET Aspire orchestration host — wires all services together for local dev |
 | **Atlas.Host** | Main service: MCP server, catalog REST API, React UI, execution engine |
-| **Atlas.StubIdp** | Lightweight in-process RSA JWT issuer for offline/CI dev (no Keycloak required) |
 | **SampleApi.ToolEnabled** | Demo customer API whose operations are registered as MCP tools |
 | **SampleApi.NotToolEnabled** | Demo products API intentionally *not* registered as tools |
 

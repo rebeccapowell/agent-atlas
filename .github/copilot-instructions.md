@@ -15,7 +15,6 @@ Agent Atlas is an enterprise **MCP (Model Context Protocol) gateway** built with
 src/
   Atlas.AppHost/         # .NET Aspire orchestration host (local dev entry point)
   Atlas.Host/            # Main service: MCP server, catalog API, execution engine, React UI
-  Atlas.StubIdp/         # Lightweight RSA JWT issuer for offline/CI dev (no Keycloak needed)
   SampleApi.ToolEnabled/ # Demo API whose operations ARE registered as MCP tools
   SampleApi.NotToolEnabled/ # Demo API intentionally NOT registered as tools
 catalog/                 # GitOps data-plane: catalog.yaml, apis/, policies/
@@ -52,15 +51,6 @@ dotnet build src/Atlas.AppHost/Atlas.AppHost.csproj
 
 # 3. Run with Aspire (preferred — starts all services with Keycloak, MCP Inspector, OTel)
 aspire run --project src/Atlas.AppHost
-
-# Run without Docker (StubIdp fallback — two terminals required)
-# Terminal 1: StubIdp JWT issuer runs on http://localhost:5172
-dotnet run --project src/Atlas.StubIdp
-
-# Terminal 2: Atlas.Host pointed at StubIdp
-Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Oidc__Issuer=http://localhost:5172 \
-dotnet run --project src/Atlas.Host
 ```
 
 > **Prefer `aspire run` over `dotnet run`** when starting any project.
@@ -110,13 +100,6 @@ dotnet test src/Atlas.Host.Tests/ --no-build
 # Use this only to take Playwright screenshots of the React UI.
 # Do NOT use this to test MCP tools — the /mcp endpoint requires a real JWT.
 Atlas__CatalogPath=$(pwd)/catalog \
-dotnet run --project src/Atlas.Host --no-build &
-
-# Run Atlas.Host with StubIdp auth — the CORRECT way to test MCP tools (no Docker needed)
-# This is the only acceptable approach for agent/CI MCP testing without Keycloak.
-# First start StubIdp: dotnet run --project src/Atlas.StubIdp --no-build &
-Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Oidc__Issuer=http://localhost:5172 \
 dotnet run --project src/Atlas.Host --no-build &
 ```
 
@@ -224,9 +207,7 @@ Atlas.Host enforces that every `/mcp` caller holds explicit, scoped consent:
   to the target API
 
 These scopes are real OAuth2.0 scopes defined in the Keycloak realm. Granting them
-requires an authorization server — hence Keycloak. StubIdp is only a fallback for
-headless CI environments where Docker is unavailable; it issues JWTs without enforcing
-real OAuth2.0 consent flows.
+requires an authorization server — hence Keycloak.
 
 ### Keycloak OAuth2.0 clients in the `atlas` realm
 
@@ -264,9 +245,12 @@ options.ResourceMetadata = new ProtectedResourceMetadata
 
 ## Testing MCP Tools with JWT Authentication
 
-There are two approaches depending on whether Docker / Keycloak is available.
+Testing MCP tools requires the full Aspire stack with Keycloak. Atlas is a **proxy
+gateway** — `execute_plan` forwards the caller's JWT verbatim to downstream APIs
+(`ExecutionEngine.cs:178`), so the downstream sample APIs must be running and the token
+must be issued by an authority they trust. Only the full Aspire stack provides this.
 
-### Option A — Full Aspire stack with Keycloak (preferred, proper OAuth2.0 PKCE flow)
+### Full Aspire stack with Keycloak
 
 When the full Aspire AppHost is running:
 
@@ -295,71 +279,6 @@ TOKEN=$(curl -s -X POST \
   -d "client_secret=atlas-mcp-secret" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
-
-### Option B — StubIdp fallback (agent / CI — Atlas auth gate only, not end-to-end)
-
-> **Scope limitation — read before using this approach.**
-> Atlas is a **proxy gateway**. When an agent calls `execute_plan`, Atlas takes the
-> caller's JWT and forwards it verbatim as `Authorization: Bearer <token>` to the
-> downstream API (see `ExecutionEngine.cs`). The downstream sample APIs
-> (`sample-api-tool-enabled` etc.) only run inside the full Aspire stack.
->
-> **StubIdp can only verify that Atlas's own JWT auth gate works** — i.e. that Atlas
-> accepts the token and allows `search_tools` / `describe_tool` calls. It cannot
-> exercise the full proxy path. Use Option A (Keycloak + full stack) whenever you need
-> to test `execute_plan`.
-
-When Docker is unavailable and you only need to verify Atlas's auth layer (catalog
-search, tool description), StubIdp is a lightweight fallback:
-
-```bash
-# 1. Start StubIdp — JWT issuer on http://localhost:5172
-dotnet run --project src/Atlas.StubIdp --no-build &
-STUB_PID=$!
-sleep 3
-
-# 2. Start Atlas.Host with StubIdp as the OIDC issuer
-Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Oidc__Issuer=http://localhost:5172 \
-dotnet run --project src/Atlas.Host --no-build &
-ATLAS_PID=$!
-sleep 6
-curl -sf http://localhost:5063/healthz   # should return "Healthy"
-
-# 3. Get an access token from StubIdp (form POST, not JSON body)
-TOKEN=$(curl -s -X POST http://localhost:5172/token \
-  -F "client_id=atlas-mcp-client" \
-  -F "scope=platform-code-mode:search platform-code-mode:execute" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-
-# 4. Initialize an MCP session
-RESP=$(curl -s -X POST http://localhost:5063/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}' \
-  -D -)
-SID=$(echo "$RESP" | grep -i "mcp-session-id:" | awk '{print $2}' | tr -d '\r')
-
-# 5. Call search_tools (catalog-only — no downstream proxy call)
-curl -s -X POST http://localhost:5063/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "mcp-session-id: $SID" \
-  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_tools","arguments":{}},"id":2}'
-
-# 6. Cleanup
-# kill $ATLAS_PID $STUB_PID
-```
-
-To use MCP Inspector with StubIdp (no browser OAuth2.0 flow available):
-
-1. Get a token using the curl command above
-2. Set **Transport Type** → `Streamable HTTP`, **URL** → `http://localhost:5063/mcp`, **Connection Type** → `Direct`
-3. Expand **Authentication → Custom Headers**, add `Authorization: Bearer <token>`
-4. Click **Connect**, then **List Tools** — `search_tools` and `describe_tool` will work;
-   `execute_plan` will fail unless the downstream sample APIs are also running
 
 ## Known Gotchas
 
@@ -394,17 +313,12 @@ read it, so MCP Inspector reports a connection error.
 policy.WithExposedHeaders("Mcp-Session-Id");
 ```
 
-### `Atlas__PlatformPermissions__Claim` differs between StubIdp and Keycloak
+### `Atlas__PlatformPermissions__Claim` must be `scope` for Keycloak
 
-| Identity provider | Claim name in token | Config value needed |
-|---|---|---|
-| StubIdp | `scp` | `scp` (the **default** — no override needed) |
-| Keycloak (via AppHost) | `scope` | `scope` (set automatically by AppHost) |
-
-When running Atlas.Host with StubIdp manually, do **not** set
-`Atlas__PlatformPermissions__Claim` — the default `scp` is correct.
-When running via the full Aspire AppHost with Keycloak, the AppHost sets it to `scope`
-automatically (`WithEnvironment("Atlas__PlatformPermissions__Claim", "scope")`).
+The AppHost sets `Atlas__PlatformPermissions__Claim` to `scope` automatically
+(`WithEnvironment("Atlas__PlatformPermissions__Claim", "scope")`). Keycloak places
+scopes in the `scope` claim. The default value in `AtlasOptions` is `scp` — always
+ensure the AppHost override is in place when using Keycloak.
 
 ### `Atlas__Mcp__AllowAnonymous` is not a real configuration key — and anonymous MCP access is wrong by design
 
@@ -429,9 +343,7 @@ The React UI endpoints load fine because they are `AllowAnonymous`. This mode is
 **only acceptable for taking UI screenshots** — the `/mcp` endpoint is not usable.
 
 **For UI screenshots**: omit `Atlas__Oidc__Issuer` entirely — the UI works, `/mcp` does not.  
-**For MCP tool testing**: always use `Atlas__Oidc__Issuer=http://localhost:5172` with StubIdp
-and obtain a real JWT that carries the required scopes. This is not a workaround — it
-is the correct, intentional development workflow.
+**For MCP tool testing**: always use the full Aspire stack (`aspire run --project src/Atlas.AppHost`) with Keycloak. This provides a real JWT with the required scopes and exercises the full proxy path including `execute_plan`.
 
 ## MCP Tools Available to the Coding Agent
 
@@ -471,7 +383,7 @@ at the URL provided by the Aspire dashboard.
 | `Atlas__CatalogPath` | `/catalog` | Path to GitOps data-plane repo |
 | `Atlas__Oidc__Issuer` | *(not set = anonymous UI-only mode)* | OIDC issuer URL; omit to disable JWT auth |
 | `Atlas__Oidc__Audience` | `api://agent-atlas` | Expected JWT audience |
-| `Atlas__PlatformPermissions__Claim` | `scp` | JWT claim for platform permissions (`scp` for StubIdp; `scope` for Keycloak — AppHost sets this automatically) |
+| `Atlas__PlatformPermissions__Claim` | `scp` | JWT claim for platform permissions (`scope` for Keycloak — AppHost sets this automatically) |
 | `Atlas__ExecLimits__MaxSteps` | `50` | Max plan steps |
 | `Atlas__ExecLimits__MaxCalls` | `50` | Max downstream HTTP calls per plan |
 | `Atlas__ExecLimits__MaxSeconds` | `30` | Plan execution timeout |

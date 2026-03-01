@@ -175,7 +175,7 @@ curl -sf http://localhost:5063/healthz   # → "Healthy"
 |------|--------|
 | Port 5063 | `dotnet run` reads `src/Atlas.Host/Properties/launchSettings.json`. The `http` profile sets `applicationUrl: http://localhost:5063`. When using `dotnet run`, launchSettings.json takes precedence over `ASPNETCORE_URLS` — always use port 5063. |
 | `Atlas__CatalogPath=$(pwd)/catalog` | Points to the bundled sample catalog already in the repository root. |
-| `Atlas__Mcp__AllowAnonymous=true` | Bypasses all OIDC/JWT authentication. No Keycloak token, no StubIdp, no OIDC issuer configured. |
+| `Atlas__Mcp__AllowAnonymous=true` | Bypasses all OIDC/JWT authentication. No Keycloak token, no OIDC issuer configured. |
 | No OIDC issuer | `Program.cs` skips the entire JWT middleware when `Atlas__Oidc__Issuer` is empty. |
 | React UI | Pre-built into `src/Atlas.Host/wwwroot/` — no Node.js build step needed. |
 | Catalog REST API | `/v1/apis` and `/v1/tools` are `AllowAnonymous` — the UI loads data without any Bearer token. |

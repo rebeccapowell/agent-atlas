@@ -113,29 +113,6 @@ The `atlas-realm.json` pre-configures `atlas-mcp-client` with three default scop
 - `platform-code-mode:execute` — required to call `execute_plan`
 - `someapi:customers:read` — downstream permission for the sample API
 
-### Offline / no-Docker alternative (StubIdp)
-
-If you cannot run Docker, start Atlas.Host and Atlas.StubIdp directly:
-
-```bash
-# Terminal 1 — StubIdp (lightweight JWT issuer, no Keycloak needed)
-dotnet run --project src/Atlas.StubIdp
-
-# Terminal 2 — Atlas.Host (catalog + MCP server)
-Atlas__CatalogPath=$(pwd)/catalog \
-Atlas__Oidc__Issuer=http://localhost:5172 \
-dotnet run --project src/Atlas.Host
-```
-
-Then get a token from StubIdp:
-
-```bash
-TOKEN=$(curl -s -X POST http://localhost:5172/token \
-  -F "client_id=atlas-mcp-client" \
-  -F "scope=platform-code-mode:search platform-code-mode:execute" \
-  | jq -r .access_token)
-```
-
 ---
 
 ## 5. Connect MCP Inspector
