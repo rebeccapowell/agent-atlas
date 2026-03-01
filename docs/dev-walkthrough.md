@@ -133,13 +133,28 @@ Open MCP Inspector. Set:
 | **URL** | Atlas.Host `/mcp` endpoint from Aspire dashboard (e.g. `http://localhost:5063/mcp`) |
 | **Connection Type** | Direct |
 
+Expand **Authentication → OAuth 2.0 Flow** and set:
+
+| Field | Value |
+|-------|-------|
+| **Client ID** | `mcp-inspector` |
+| **Client Secret** | *(leave empty — public PKCE client)* |
+| **Redirect URL** | `http://localhost:6274/oauth/callback` |
+| **Scope** | `openid platform-code-mode:search platform-code-mode:execute someapi:customers:read` |
+
+![MCP Inspector — Streamable HTTP configured, Direct mode, no manual auth headers](screenshots/wt-10-mcp-inspector-guided-setup.png)
+
+![MCP Inspector Authentication panel — OAuth 2.0 Flow configured with mcp-inspector client](screenshots/wt-10b-mcp-inspector-oauth-panel.png)
+
 **Step 2 — Connect and authenticate**
 
-Click **Connect**. Atlas.Host responds with `401 Unauthorized` and a `WWW-Authenticate` header pointing at the Keycloak realm. MCP Inspector reads the challenge, auto-discovers the Keycloak authorization endpoint, and pre-fills the required scopes (`platform-code-mode:search` and `platform-code-mode:execute`).
+Click **Connect**. Atlas.Host responds with `401 Unauthorized` and a `WWW-Authenticate` header pointing at the Keycloak realm. MCP Inspector reads the challenge, autodiscovers the Keycloak authorization endpoint, and opens the Keycloak login page.
 
-When prompted, complete the Keycloak login. MCP Inspector exchanges the authorization code for a token and retries the connection automatically. The status changes to **Connected** and Atlas.Host's server info appears.
+![Keycloak login page — sign in to Agent Atlas realm](screenshots/wt-12-keycloak-login.png)
 
-![MCP Inspector — authentication configured](screenshots/wt-01-mcp-inspector-setup.png)
+Complete the Keycloak login. MCP Inspector exchanges the authorization code for a token and retries the connection automatically. The status changes to **Connected**, Atlas.Host's server info appears, and a success notification confirms the guided PKCE flow completed.
+
+![MCP Inspector — Connected after guided OAuth2 PKCE flow via Keycloak](screenshots/wt-13-mcp-inspector-guided-connected.png)
 
 ### Option B — Manual bearer token (M2M / scripted access)
 
@@ -159,6 +174,8 @@ Once connected, click **List Tools** to load the three Atlas MCP tools:
 - `search_tools` — search the catalog
 - `describe_tool` — get full metadata for a specific tool
 - `execute_plan` — run a JSON plan against downstream APIs
+
+![MCP Inspector — three Atlas tools listed after guided OAuth authentication](screenshots/wt-11-mcp-inspector-tools-listed.png)
 
 ### Step 4 — Run `search_tools`
 
@@ -199,6 +216,12 @@ Select **execute_plan** and provide a plan in the `plan` parameter. A minimal dr
 ```
 
 Use `"mode": "dryRun"` first to validate the plan without making downstream HTTP calls. Switch to `"mode": "run"` to execute for real.
+
+When `mode` is `"run"`, Atlas forwards the caller's JWT verbatim to every downstream API — this is the **JWT passthrough** mechanism. The downstream API receives exactly the same Bearer token the MCP caller presented to Atlas, enforcing the caller's own downstream permissions rather than a privileged service account.
+
+> **Security note:** Because the JWT is forwarded as-is, the token must carry all permissions required by every downstream API in the plan. If the caller's JWT does not contain a permission expected by a downstream API (e.g. `someapi:customers:read`), that API will return `401` or `403` and the plan step will fail. Atlas does not mint or escalate tokens on behalf of callers.
+
+![execute_plan — mode run, JWT forwarded to SampleApi, 3 customers returned](screenshots/wt-14-execute-plan-jwt-passthrough.png)
 
 ---
 
