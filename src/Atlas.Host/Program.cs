@@ -47,9 +47,16 @@ if (!string.IsNullOrEmpty(atlasOpts.Oidc.Issuer))
             // Advertise the Keycloak realm as the authorization server so MCP Inspector
             // can auto-discover the token/authorization endpoints via
             // {issuer}/.well-known/openid-configuration.
+            // ScopesSupported tells MCP Inspector which scopes to request during the
+            // guided/quick OAuth flow so the user doesn't have to type them manually.
             options.ResourceMetadata = new ProtectedResourceMetadata
             {
                 AuthorizationServers = [atlasOpts.Oidc.Issuer],
+                ScopesSupported =
+                [
+                    atlasOpts.PlatformPermissions.Search,
+                    atlasOpts.PlatformPermissions.Execute,
+                ],
             };
         });
 }

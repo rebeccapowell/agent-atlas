@@ -44,16 +44,25 @@
     {
       "clientId": "atlas-mcp-client",
       "name": "Atlas MCP Client",
-      "description": "M2M client for programmatic Atlas MCP access (client_credentials)",
+      "description": "Confidential client for Atlas MCP: client_credentials (M2M) and authorization code + PKCE (guided/interactive via MCP Inspector). PKCE is enforced even for this confidential client for defence-in-depth.",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
       "secret": "atlas-mcp-secret",
       "publicClient": false,
       "serviceAccountsEnabled": true,
-      "standardFlowEnabled": false,
+      "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "authorizationServicesEnabled": false,
       "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:6274/*"
+      ],
+      "webOrigins": [
+        "http://localhost:6274"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
       "defaultClientScopes": [
         "openid",
         "profile",
