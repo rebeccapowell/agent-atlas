@@ -71,3 +71,32 @@ Caller → [Atlas JWT validation] → [Platform permission check] → [Execute p
 ```
 
 Atlas only calls base URLs declared in the catalog repo. Arbitrary hostnames in plans are rejected.
+
+---
+
+## Keycloak OAuth2 clients
+
+The local development Keycloak realm (`src/Atlas.AppHost/keycloak/atlas-realm.json`) ships with three pre-configured clients:
+
+| Client ID | Type | Flows | Purpose |
+|-----------|------|-------|---------|
+| `atlas-mcp-client` | Confidential | `client_credentials` **and** authorization code + PKCE | M2M service-account access **and** guided/interactive auth via MCP Inspector. PKCE (`S256`) is enforced even on this confidential client for defence-in-depth. |
+| `mcp-inspector` | Public (PKCE) | Authorization code + PKCE | Dedicated public client for interactive MCP Inspector sessions. |
+| `atlas-ui-client` | Public (PKCE) | Authorization code + PKCE | Atlas React UI (future use). |
+
+`atlas-mcp-client` carries three default scopes: `platform-code-mode:search`, `platform-code-mode:execute`, and `someapi:customers:read`.
+
+### Guided OAuth2 discovery via `ProtectedResourceMetadata`
+
+When an unauthenticated request reaches `/mcp`, Atlas returns:
+
+```
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/openid-configuration"
+```
+
+The `ProtectedResourceMetadata` advertises:
+- **`AuthorizationServers`** — the Keycloak realm URL, so MCP Inspector can auto-discover the token and authorization endpoints.
+- **`ScopesSupported`** — `platform-code-mode:search` and `platform-code-mode:execute`, so MCP Inspector pre-fills the required scopes in its guided/quick OAuth flow without manual input.
+
+This means MCP Inspector can complete the entire OAuth2 PKCE exchange automatically — no manual token copying required.
