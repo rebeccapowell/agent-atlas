@@ -93,28 +93,50 @@ Agent Atlas is an ASP.NET Core 10 / .NET Aspire project. The key areas and their
    - Ensure content is accessible and accurate
    - **Capture live screenshots** when visual changes are made (see below)
 
-4. **Capture Screenshots Using Aspire MCP and Playwright MCP**
+4. **Capture Screenshots Using Playwright MCP**
 
-   When the application is running, use the available MCP servers to take live screenshots
-   for documentation and the repository README:
+   **Important — run Atlas.Host standalone (no Docker required):**
 
-   - Use the **Aspire MCP** (`aspire mcp start`) to discover the URL of the running
-     `atlas-host` resource and inspect OTel traces/logs.
-   - Use the **Playwright MCP** (`npx @playwright/mcp`) to navigate to the Atlas UI at
-     that URL and capture screenshots.
+   In the GitHub Copilot agent environment and in CI contexts, run Atlas.Host
+   directly rather than starting the full Aspire AppHost. This avoids the Docker
+   dependency on Keycloak and MCP Inspector images and starts in seconds:
 
-   Screenshot checklist for UI changes:
+   ```bash
+   # Build Atlas.Host if not already done
+   dotnet build src/Atlas.Host/Atlas.Host.csproj --no-restore
+
+   # Start Atlas.Host — UI ready at http://localhost:5063
+   Atlas__CatalogPath=$(pwd)/catalog \
+   Atlas__Mcp__AllowAnonymous=true \
+   dotnet run --project src/Atlas.Host --no-build &
+
+   sleep 4
+   curl -sf http://localhost:5063/healthz   # should return "Healthy"
+   ```
+
+   Key facts:
+   - `dotnet run` uses launchSettings.json which takes precedence over `ASPNETCORE_URLS`; binds to port 5063
+   - `Atlas__Mcp__AllowAnonymous=true` bypasses all OIDC auth — no Keycloak needed
+   - The React UI is served from `wwwroot/` (pre-built, no Node.js step required)
+   - `/v1/apis` and `/v1/tools` are `AllowAnonymous` — UI loads without a token
+
+   Once the app is running, use the **Playwright MCP** to navigate and capture
+   screenshots. Screenshot checklist for UI changes:
+
    - [ ] Tools list — light mode (`docs/screenshots/01-tools-list-light.png`)
-   - [ ] Tool detail panel (`docs/screenshots/02-tool-detail.png`)
+   - [ ] Tool detail panel — light mode (`docs/screenshots/02-tool-detail-light.png`)
    - [ ] APIs list — light mode (`docs/screenshots/03-apis-list-light.png`)
    - [ ] Tools list — dark mode (`docs/screenshots/04-tools-list-dark.png`)
    - [ ] APIs list — dark mode (`docs/screenshots/05-apis-list-dark.png`)
    - [ ] Tool detail — dark mode (`docs/screenshots/06-tool-detail-dark.png`)
+   - [ ] Use MCP tab — light mode (`docs/screenshots/07-use-mcp-light.png`)
+   - [ ] Use MCP tab — dark mode (`docs/screenshots/07-use-mcp-dark.png`)
+   - [ ] About tab — dark mode (`docs/screenshots/08-about-dark.png`)
 
-   After saving screenshots, update `docs/index.md` and `README.md` to reference them.
+   Toggle dark/light mode with the moon/sun icon in the navigation bar.
 
-   MCP server configuration is committed at `.copilot/mcp-config.json` (Aspire MCP +
-   Playwright MCP) and `.vscode/mcp.json`.
+   After saving screenshots, update `docs/walkthrough.md`, `docs/index.md`, and
+   `README.md` to reference them.
 
 5. **Quality Assurance**
 
