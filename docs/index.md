@@ -52,6 +52,7 @@ Browse the full documentation using the navigation on the left (or above on mobi
 
 | Page | Description |
 |---|---|
+| [UI Walkthrough](walkthrough) | Screenshots and tour of the Tools, APIs, Use MCP, and About pages |
 | [Security Model](security-model) | Two-layer auth model — platform permissions + downstream API auth |
 | [GitOps Data Plane](gitops-data-plane) | Catalog repo structure and `x-mcp` extension reference |
 | [Deploy with Docker](deploy-docker) | Docker deployment guide including published image details |

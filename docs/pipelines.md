@@ -1,6 +1,6 @@
 ---
 title: CI/CD Pipelines
-nav_order: 6
+nav_order: 7
 ---
 
 # CI/CD Pipeline Setup Guide

@@ -1,6 +1,6 @@
 ---
 title: Deploy with Helm
-nav_order: 5
+nav_order: 6
 ---
 
 # Deploy Agent Atlas with Helm

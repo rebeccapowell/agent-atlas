@@ -1,6 +1,6 @@
 ---
 title: Security Model
-nav_order: 2
+nav_order: 3
 ---
 
 # Security Model: Platform Permissions vs Downstream Auth

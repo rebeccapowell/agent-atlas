@@ -1,6 +1,6 @@
 ---
 title: Configuration Guide
-nav_order: 7
+nav_order: 8
 ---
 
 # Configuration Steps for GitHub Pages & Agentic Documentation

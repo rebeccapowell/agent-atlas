@@ -1,6 +1,6 @@
 ---
 title: GitOps Data Plane
-nav_order: 3
+nav_order: 4
 ---
 
 # GitOps Data Plane Repo Structure
