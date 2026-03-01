@@ -3,7 +3,7 @@
 replicaCount: 1
 
 image:
-  repository: agent-atlas
+  repository: ghcr.io/rebeccapowell/agent-atlas
   pullPolicy: IfNotPresent
   tag: ""
 

@@ -11,9 +11,14 @@
 helm install agent-atlas ./helm/agent-atlas \
   --namespace agent-atlas \
   --create-namespace \
+  --set image.repository=ghcr.io/rebeccapowell/agent-atlas \
   --set oidc.issuer=https://your-idp.example.com \
   --set oidc.audience=api://agent-atlas
 ```
+
+> **Production tip:** Pin to a specific image tag for reproducible deployments:
+> `--set image.tag=1.2.3`
+> When `image.tag` is not set, the chart defaults to the `appVersion` in `Chart.yaml`.
 
 ## Configuration
 
