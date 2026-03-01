@@ -105,6 +105,8 @@ jobs:
             const body = [
               `## Documentation Review Request`,
               ``,
+              `@github-copilot — please action the checklist below.`,
+              ``,
               `This issue was automatically created by the [Agentic Documentation Update workflow](${runUrl}).`,
               `A code change was detected that may require documentation updates.`,
               ``,
@@ -189,10 +191,10 @@ jobs:
                 title: `docs: Review documentation after ${ref}`,
                 body,
                 labels: ['documentation', 'automation'],
-                // Assign to GitHub Copilot coding agent.
+                // Note: GitHub Copilot coding agent is triggered by the @github-copilot mention
+                // in the issue body, not by direct assignment via the API.
                 // Requires "Copilot coding agent" to be enabled in repository settings.
                 // (Settings → Copilot → Coding agent)
-                assignees: ['github-copilot'],
               });
               issue = created.data;
               console.log(`Created documentation review issue: ${issue.html_url}`);

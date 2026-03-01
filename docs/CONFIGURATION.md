@@ -75,7 +75,7 @@ the `/docs` folder and open a draft documentation PR if needed.
    - Save
 
    > **Why?** The `update-docs.yml` workflow creates a documentation review issue and
-   > assigns it to `@github-copilot`. The coding agent picks up this issue, analyses the
+   > mentions `@github-copilot` in the body. The coding agent picks up this issue, analyses the
    > code changes, and opens a draft PR with documentation updates.
    >
    > If the coding agent is **not** enabled, the issue will still be created but will
@@ -94,7 +94,7 @@ the `/docs` folder and open a draft documentation PR if needed.
 
    - Open a PR against `dev`, `preview`, or `main` that changes source code
    - A comment will appear on the PR linking to the new documentation review issue
-   - The issue will be assigned to `@github-copilot` (if the coding agent is enabled)
+   - `@github-copilot` is mentioned in the issue body (coding agent picks it up automatically if enabled)
 
 ---
 
